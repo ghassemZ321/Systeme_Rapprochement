@@ -1,0 +1,40 @@
+<div class="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="/logo.png" alt="Logo Banque">
+    </div>
+
+    <h2>Connexion</h2>
+
+    <form (ngSubmit)="onLogin()">
+      <div class="field">
+        <label for="username">Identifiant</label>
+        <input id="username" type="text" autocomplete="username"
+               [(ngModel)]="username" name="username"
+               placeholder="Votre identifiant" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Mot de passe</label>
+        <input id="password" type="password" autocomplete="current-password"
+               [(ngModel)]="password" name="password"
+               placeholder="Votre mot de passe" required />
+      </div>
+
+      <div class="field-row">
+        <label class="remember">
+          <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe" />
+         
+        </label>
+      </div>
+
+      <div class="login-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <button type="submit" class="ui-btn ui-btn-primary login-submit" [disabled]="loading">
+        {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
+      </button>
+    </form>
+
+    <p class="login-footer">© 2026 BAMIS — Espace professionnel sécurisé</p>
+  </div>
+</div>

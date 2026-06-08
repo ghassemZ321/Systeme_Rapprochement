@@ -1,1 +1,61 @@
-/* You can add global styles to this file, and also import other style files */
+/* ===== DESIGN SYSTEM BANCAIRE BAMIS ===== */
+:root {
+  --color-primary: #0a3d62;
+  --color-primary-dark: #062c47;
+  --color-accent: #1e6091;
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-border: #e6eaf0;
+  --color-text: #1a2533;
+  --color-text-soft: #64748b;
+  --color-success: #1b9c5d;
+  --color-warning: #d68a00;
+  --color-danger: #d64545;
+  --color-info: #2563eb;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 20px rgba(16, 24, 40, 0.08);
+  --font: 'Segoe UI', Roboto, system-ui, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* Boutons réutilisables */
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.ui-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ui-btn-primary { background: var(--color-primary); color: #fff; }
+.ui-btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
+.ui-btn-success { background: var(--color-success); color: #fff; }
+.ui-btn-success:hover:not(:disabled) { background: #157a48; }
+.ui-btn-ghost { background: transparent; color: var(--color-text-soft); border: 1px solid var(--color-border); }
+.ui-btn-ghost:hover:not(:disabled) { background: var(--color-bg); }
+
+/* Carte réutilisable */
+.ui-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
