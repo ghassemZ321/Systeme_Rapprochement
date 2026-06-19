@@ -1,34 +1,94 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ImportResponse, ReconciliationResponse, ResultDetail } from '../models/models';
+import {
+  ImportResponse, BatchSummary,
+  ReconciliationSummary, ReconResult,
+  UserResponse, CreateUserRequest,
+  Config, UpdateConfigRequest,
+  AuditLog
+} from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
 
-  private baseUrl = 'http://localhost:8090/api';
+  private base = 'http://localhost:8090/api';
 
   constructor(private http: HttpClient) {}
 
-  importExcel(file: File): Observable<ImportResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<ImportResponse>(`${this.baseUrl}/import`, formData);
+  // ── Import ────────────────────────────────────────────────
+  uploadFile(file: File, cutOffId: string): Observable<ImportResponse> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('cutOffId', cutOffId);
+    return this.http.post<ImportResponse>(`${this.base}/import/upload`, form);
   }
 
-  reconcile(importFileId: number): Observable<ReconciliationResponse> {
-    return this.http.post<ReconciliationResponse>(
-      `${this.baseUrl}/reconciliation/${importFileId}`, {});
+  getBatches(): Observable<BatchSummary[]> {
+    return this.http.get<BatchSummary[]>(`${this.base}/import/batches`);
   }
 
-  getResults(jobId: number): Observable<ResultDetail[]> {
-    return this.http.get<ResultDetail[]>(
-      `${this.baseUrl}/reconciliation/${jobId}/results`);
+  getBatchById(id: number): Observable<BatchSummary> {
+    return this.http.get<BatchSummary>(`${this.base}/import/batch/${id}`);
   }
 
-  downloadReport(jobId: number): Observable<Blob> {
-    return this.http.get(
-      `${this.baseUrl}/reconciliation/${jobId}/report`,
+  // ── Reconciliation ────────────────────────────────────────
+  runReconciliation(batchId: number): Observable<ReconciliationSummary> {
+    return this.http.post<ReconciliationSummary>(
+      `${this.base}/reconciliation/run/${batchId}`, {});
+  }
+
+  getJobs(): Observable<ReconciliationSummary[]> {
+    return this.http.get<ReconciliationSummary[]>(`${this.base}/reconciliation/jobs`);
+  }
+
+  getJobById(jobId: number): Observable<ReconciliationSummary> {
+    return this.http.get<ReconciliationSummary>(
+      `${this.base}/reconciliation/job/${jobId}`);
+  }
+
+  getResults(jobId: number): Observable<ReconResult[]> {
+    return this.http.get<ReconResult[]>(
+      `${this.base}/reconciliation/result/${jobId}`);
+  }
+
+  // ── Report ────────────────────────────────────────────────
+  generateReport(jobId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/reports/generate/${jobId}`,
       { responseType: 'blob' });
+  }
+
+  // ── Users ─────────────────────────────────────────────────
+  getUsers(): Observable<UserResponse[]> {
+    return this.http.get<UserResponse[]>(`${this.base}/admin/users`);
+  }
+
+  createUser(request: CreateUserRequest): Observable<UserResponse> {
+    return this.http.post<UserResponse>(`${this.base}/admin/users`, request);
+  }
+
+  toggleUser(id: number): Observable<UserResponse> {
+    return this.http.put<UserResponse>(
+      `${this.base}/admin/users/${id}/toggle`, {});
+  }
+
+  resetPassword(id: number): Observable<string> {
+    return this.http.put(`${this.base}/admin/users/${id}/reset-password`, {},
+      { responseType: 'text' });
+  }
+
+  // ── Config ────────────────────────────────────────────────
+  getConfigs(): Observable<Config[]> {
+    return this.http.get<Config[]>(`${this.base}/admin/config`);
+  }
+
+  updateConfig(key: string, value: string): Observable<Config> {
+  return this.http.put<Config>(`${this.base}/admin/config/${key}`, { configValue: value });
+}
+
+
+  // ── Audit ─────────────────────────────────────────────────
+  getAuditLogs(): Observable<AuditLog[]> {
+    return this.http.get<AuditLog[]>(`${this.base}/admin/audit`);
   }
 }

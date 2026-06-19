@@ -1,135 +1,104 @@
-<div class="layout">
-  <!-- Barre de navigation supérieure -->
-  <header class="topbar">
-    <div class="topbar-brand">
-      
-      <div class="brand-titles">
-        <h1>Rapprochement bancaire automatisé</h1>
-      </div>
-      
-    </div>
-    <div class="login-logo">
-      <img src="/logo.png" alt="Logo Banque">
-    </div>
-    <div class="topbar-user">
-      <div class="user-block">
-        <span class="user-name">{{ getFullName() }}</span>
-        
-      </div>
-      <br><br><br>
-      <button class="ui-btn ui-btn-ghost" (click)="logout()">Déconnexion</button>
-      <br><br>
-    </div>
-  </header>
-  <br><br>
+<div class="dashboard">
+  <div class="page-header">
+    <h2><i class="fas fa-chart-bar"></i> Tableau de bord</h2>
+    
+  </div>
 
-  <!-- Contenu -->
-  <main class="page">
+  <div *ngIf="error" class="alert alert-error">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
 
-    <!-- Cartes statistiques -->
-    <div class="stats-grid" *ngIf="summary">
-      <div class="stat-card">
-        <span class="stat-label">Total traité</span>
-        <span class="stat-value">{{ summary.totalProcessed }}</span>
-      </div>
-      <div class="stat-card sc-success">
-        <span class="stat-label">Conformes</span>
-        <span class="stat-value">{{ summary.totalMatched }}</span>
-      </div>
-      <div class="stat-card sc-warning">
-        <span class="stat-label">Écart montant</span>
-        <span class="stat-value">{{ summary.amountMismatch }}</span>
-      </div>
-      <div class="stat-card sc-info">
-        <span class="stat-label">Excel seul</span>
-        <span class="stat-value">{{ summary.excelOnly }}</span>
-      </div>
-      <div class="stat-card sc-danger">
-        <span class="stat-label">Oracle seul</span>
-        <span class="stat-value">{{ summary.oracleOnly }}</span>
-      </div>
-    </div>
+  <div *ngIf="loading" class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i> Chargement...
+  </div>
 
-    <!-- Actions rapides -->
-    <div class="ui-card quick-actions">
-      
-      <div class="actions-grid">
-        <div class="action-step">
-          <div class="step-top">
-            <span class="step-badge">1</span>
-            <h3>Importer le fichier Excel</h3>
-            <br><br>
-          </div>
-          <label class="file-drop">
-            <input type="file" (change)="onFileSelected($event)" accept=".xlsx" />
-            <span>{{ selectedFile ? selectedFile.name : 'Sélectionner un fichier .xlsx' }}</span>
-          </label>
-          <button class="ui-btn ui-btn-primary" (click)="onImport()" [disabled]="loading || !selectedFile">
-            {{ loading ? 'Traitement...' : 'Importer' }}
-          </button>
-        </div>
-
-        <div class="action-step">
-          <div class="step-top">
-            <span class="step-badge" [class.done]="importFileId !== null">2</span>
-            <h3>Lancer le rapprochement</h3>
-          </div>
-          <br>
-          <br>
-          <p class="step-hint">Comparaison automatique avec la base Oracle.</p>
-          <button class="ui-btn ui-btn-success" (click)="onReconcile()"
-                  [disabled]="loading || importFileId === null">
-            {{ loading ? 'Traitement...' : 'Lancer le rapprochement' }}
-          </button>
-        </div>
-
-        <div class="action-step" *ngIf="summary">
-          <div class="step-top">
-            <span class="step-badge done">3</span>
-            <h3>Exporter le rapport</h3>
-          </div>
-          <p class="step-hint">Téléchargez le résultat au format Excel.</p>
-          <br><br>
-          <button class="ui-btn ui-btn-ghost" (click)="onDownloadReport()">
-            Télécharger le rapport
-          </button>
+  <ng-container *ngIf="!loading">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon bg-blue"><i class="fas fa-file-upload"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ totalBatches }}</span>
+          <span class="kpi-label">Fichiers importés</span>
         </div>
       </div>
-
-      <div class="status-msg" *ngIf="message"
-           [class.ok]="importFileId !== null">{{ message }}</div>
-    </div>
-
-    <!-- Tableau des résultats -->
-    <div class="ui-card table-block" *ngIf="results.length > 0">
-      <h2 class="block-title">Détail des transactions rapprochées</h2>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Référence</th>
-              <th>Montant Excel</th>
-              <th>Montant Oracle</th>
-              <th>Statut TRX</th>
-              <th>Résultat</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let r of results">
-              <td class="mono">{{ r.refeNumb }}</td>
-              <td>{{ r.montantExcel !== null ? r.montantExcel : '—' }}</td>
-              <td>{{ r.montantOracle !== null ? r.montantOracle : '—' }}</td>
-              <td>{{ r.trxStatus || '—' }}</td>
-              <td>
-                <span class="badge" [ngClass]="getStatusClass(r.matchStatus)">
-                  {{ getStatusLabel(r.matchStatus) }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-green"><i class="fas fa-check-circle"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ totalImported }}</span>
+          <span class="kpi-label">Imports réussis</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-purple"><i class="fas fa-exchange-alt"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ totalReconciled }}</span>
+          <span class="kpi-label">Rapprochements</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-orange"><i class="fas fa-percentage"></i></div>
+        <div class="kpi-content">
+          <span class="kpi-value">{{ conformeRate }}%</span>
+          <span class="kpi-label">Taux conforme</span>
+        </div>
       </div>
     </div>
 
-  </main>
+    <div class="section-card" *ngIf="lastJob">
+      <h3><i class="fas fa-history"></i> Dernier rapprochement</h3>
+      <div class="last-job-grid">
+        <div class="job-stat">
+          <span class="stat-label">CUT_OFF_ID</span>
+          <span class="stat-value">{{ lastJob.cutOffId }}</span>
+        </div>
+        <div class="job-stat">
+          <span class="stat-label">Statut</span>
+          <span [class]="getStatusBadge(lastJob.jobStatus)">{{ getStatusLabel(lastJob.jobStatus) }}</span>
+        </div>
+        <div class="job-stat">
+          <span class="stat-label">Conformes</span>
+          <span class="stat-value text-green">{{ lastJob.totalConforme }}</span>
+        </div>
+        <div class="job-stat">
+          <span class="stat-label">Non conformes</span>
+          <span class="stat-value text-red">{{ lastJob.totalNonConforme }}</span>
+        </div>
+        <div class="job-stat">
+          <span class="stat-label">Date</span>
+          <span class="stat-value">{{ formatDate(lastJob.launchedAt) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3><i class="fas fa-list"></i> Historique des imports</h3>
+      <div *ngIf="batches.length === 0" class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>Aucun import effectué</p>
+        <a routerLink="/import" class="btn-primary">Importer un fichier</a>
+      </div>
+      <table *ngIf="batches.length > 0" class="data-table">
+        <thead>
+          <tr>
+            <th>CUT_OFF_ID</th>
+            <th>Fichier</th>
+            <th>Lignes</th>
+            <th>Statut</th>
+            <th>Importé par</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of batches">
+            <td><code>{{ b.cutOffId }}</code></td>
+            <td>{{ b.fileName }}</td>
+            <td>{{ b.totalRows }}</td>
+            <td><span [class]="getStatusBadge(b.status)">{{ getStatusLabel(b.status) }}</span></td>
+            <td>{{ b.importedBy }}</td>
+            <td>{{ formatDate(b.importedAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
 </div>

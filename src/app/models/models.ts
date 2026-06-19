@@ -1,3 +1,4 @@
+// ── Auth ──────────────────────────────────────────────────────
 export interface LoginRequest {
   username: string;
   password: string;
@@ -11,32 +12,96 @@ export interface LoginResponse {
   mustChangePwd: boolean;
 }
 
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+// ── User ──────────────────────────────────────────────────────
+export interface UserResponse {
+  id: number;
+  username: string;
+  fullName: string;
+  role: string;
+  active: number;
+  mustChangePwd: number;
+  createdAt: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  password: string;
+  fullName: string;
+  role: string;
+}
+
+// ── Import ────────────────────────────────────────────────────
 export interface ImportResponse {
-  importFileId: number;
+  batchId: number;
+  cutOffId: string;
   fileName: string;
   totalRows: number;
+  status: string;
   message: string;
 }
 
-export interface ReconciliationResponse {
-  jobId: number;
-  importFileId: number;
-  totalProcessed: number;
-  totalMatched: number;
-  totalAnomalies: number;
-  amountMismatch: number;
-  excelOnly: number;
-  oracleOnly: number;
-  message: string;
-}
-
-export interface ResultDetail {
+export interface BatchSummary {
   id: number;
+  fileName: string;
   cutOffId: string;
-  refeNumb: string;
+  totalRows: number;
+  status: string;
+  importedBy: string;
+  importedAt: string;
+}
+
+// ── Reconciliation ────────────────────────────────────────────
+export interface ReconciliationSummary {
+  jobId: number;
+  batchId: number;
+  cutOffId: string;
+  totalExcel: number;
+  totalCore: number;
+  totalConforme: number;
+  totalNonConforme: number;
+  totalMissingCore: number;
+  totalMissingExcel: number;
+  launchedBy: string;
+  launchedAt: string;
+  jobStatus: string;
+}
+
+export interface ReconResult {
+  id: number;
+  switchRef: string;
   montantExcel: number | null;
-  montantOracle: number | null;
+  montantCore: number | null;
   trxStatus: string | null;
-  trxSettled: string | null;
-  matchStatus: string;
+  trxSettled: number | null;
+  presence: string;
+  conformite: string;
+  anomalyCode: string | null;
+  anomalySeverity: string | null;
+  details: string;
+}
+
+// ── Config ────────────────────────────────────────────────────
+export interface Config {
+  id: number;
+  configKey: string;
+  configValue: string;
+  description: string;
+}
+
+export interface UpdateConfigRequest {
+  configValue: string;
+}
+
+// ── Audit ─────────────────────────────────────────────────────
+export interface AuditLog {
+  id: number;
+  username: string;
+  action: string;
+  details: string;
+  createdAt: string;
 }

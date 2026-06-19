@@ -1,0 +1,288 @@
+<div class="topbar">
+  <div class="topbar-title">Import de fichier</div>
+</div>
+
+<div class="page-body">
+
+  <!-- ── Zone upload ─────────────────────────────────────────── -->
+  <div class="card">
+    <div class="page-header" style="margin-bottom:24px;">
+      <div>
+        <div class="page-title" style="font-size:17px;">
+          Importer un fichier de compensation
+        </div>
+        <div class="page-subtitle">
+          Formats acceptés : .xlsx, .csv — Maximum 100 000 lignes
+        </div>
+      </div>
+    </div>
+
+    <div class="import-grid">
+
+      <!-- Drop zone -->
+      <label class="file-upload"
+             (dragover)="onDragOver($event)"
+             (drop)="onDrop($event)">
+        <input type="file" accept=".xlsx,.csv"
+               (change)="onFileSelected($event)" />
+        <div class="file-upload-icon">
+          {{ selectedFile ? '✅' : '📂' }}
+        </div>
+        <div class="file-upload-text" *ngIf="!selectedFile">
+          Glissez votre fichier ici<br/>
+          ou <strong>cliquez pour parcourir</strong>
+        </div>
+        <div class="file-upload-name" *ngIf="selectedFile">
+          {{ selectedFile.name }}<br/>
+          <small>{{ formatSize(selectedFile.size) }}</small>
+        </div>
+        <div class="file-format-tags">
+          <span class="format-tag">XLSX</span>
+          <span class="format-tag">CSV</span>
+        </div>
+      </label>
+
+      <!-- Formulaire -->
+      <div class="import-form">
+
+        <!-- Info fichier sélectionné -->
+        <div class="file-info-box" *ngIf="selectedFile">
+          <div class="file-info-row">
+            <span class="file-info-label">Nom</span>
+            <span class="file-info-val">{{ selectedFile.name }}</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Taille</span>
+            <span class="file-info-val">{{ formatSize(selectedFile.size) }}</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">Format</span>
+            <span class="file-info-val">
+              {{ selectedFile.name.endsWith('.xlsx') ? 'Excel (.xlsx)' : 'CSV (.csv)' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- CUT_OFF_ID -->
+        <div class="field">
+          <label>
+            CUT_OFF_ID
+            <span style="color:#c62828;">*</span>
+            <span class="field-hint">
+              Identifiant unique de la période de compensation
+            </span>
+          </label>
+          <input
+            type="text"
+            [(ngModel)]="cutOffId"
+            name="cutOffId"
+            placeholder="Ex: 202601411"
+            [disabled]="loading"
+            class="cutoff-input"
+          />
+        </div>
+
+        <!-- Règles métier -->
+        <div class="rules-box">
+          <div class="rules-title">⚠️ Règles d'import</div>
+          <ul class="rules-list">
+            <li>Un CUT_OFF_ID ne peut être importé qu'une seule fois</li>
+            <li>La première ligne doit être l'en-tête</li>
+            <li>Les colonnes doivent respecter le format BAMIS</li>
+            <li>Maximum 100 000 lignes par fichier</li>
+          </ul>
+        </div>
+
+        <!-- Messages -->
+        <div class="alert alert-danger" *ngIf="error">
+          ⚠️ {{ error }}
+        </div>
+
+        <div class="alert alert-success"
+             *ngIf="result && result.status === 'IMPORTED'">
+          ✅ {{ result.message }}<br/>
+          <div class="result-details">
+            <span>🆔 Batch ID : <strong>{{ result.batchId }}</strong></span>
+            <span>📋 CUT_OFF_ID : <strong>{{ result.cutOffId }}</strong></span>
+            <span>📊 Lignes : <strong>{{ result.totalRows }}</strong></span>
+          </div>
+        </div>
+
+        <div class="alert alert-danger"
+             *ngIf="result && result.status === 'REJECTED'">
+          ❌ {{ result.message }}
+        </div>
+
+        <div class="alert alert-danger"
+             *ngIf="result && result.status === 'ERROR'">
+          ❌ {{ result.message }}
+        </div>
+
+        <!-- Bouton import -->
+        <button
+          class="btn btn-primary btn-lg btn-full import-btn"
+          (click)="onImport()"
+          [disabled]="loading || !selectedFile || !cutOffId.trim()">
+          <span *ngIf="!loading">📤 Importer le fichier</span>
+          <span *ngIf="loading" class="loading-text">
+            <span class="dot-spinner"></span>
+            Importation en cours...
+          </span>
+        </button>
+
+        <!-- Reset -->
+        <button
+          class="btn btn-ghost btn-full"
+          style="margin-top:8px;"
+          (click)="selectedFile = null; cutOffId = ''; result = null; error = ''"
+          *ngIf="!loading">
+          🔄 Réinitialiser
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Colonnes attendues ────────────────────────────────────── -->
+  <div class="card">
+    <div class="page-title" style="font-size:15px; margin-bottom:16px;">
+      📋 Format de fichier attendu
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Colonne</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Obligatoire</th>
+            <th>Exemple</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">0</td>
+            <td>CUT_OFF_ID</td>
+            <td><span class="badge badge-info">Numérique</span></td>
+            <td><span class="badge badge-success">Oui</span></td>
+            <td class="mono">202601411</td>
+          </tr>
+          <tr>
+            <td class="mono">1</td>
+            <td>SWITCH_REF</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-success">Oui</span></td>
+            <td class="mono">827690312946</td>
+          </tr>
+          <tr>
+            <td class="mono">2</td>
+            <td>TRANS_DATE</td>
+            <td><span class="badge badge-warning">Date/Heure</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">05/21/2026 01:35:31 PM</td>
+          </tr>
+          <tr>
+            <td class="mono">3</td>
+            <td>ORIG_INST</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">8401</td>
+          </tr>
+          <tr>
+            <td class="mono">4</td>
+            <td>ORIG_PHONE_NUMBER</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">22246487639</td>
+          </tr>
+          <tr>
+            <td class="mono">5</td>
+            <td>RECEIV_INST_ID</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">18</td>
+          </tr>
+          <tr>
+            <td class="mono">6</td>
+            <td>RECEIV_PHONE_NUMBER</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">22246487628</td>
+          </tr>
+          <tr>
+            <td class="mono">7</td>
+            <td>MONTANT</td>
+            <td><span class="badge badge-orange">Décimal</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">2000.00</td>
+          </tr>
+          <tr>
+            <td class="mono">8</td>
+            <td>TX_TYPE</td>
+            <td><span class="badge badge-info">Texte</span></td>
+            <td><span class="badge badge-gray">Non</span></td>
+            <td class="mono">T0011</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Historique des imports ────────────────────────────────── -->
+  <div class="card">
+    <div class="page-header" style="margin-bottom:16px;">
+      <div class="page-title" style="font-size:16px;">
+        Historique des imports
+      </div>
+      <button class="btn btn-ghost btn-sm" (click)="loadBatches()">
+        🔄 Actualiser
+      </button>
+    </div>
+
+    <div *ngIf="loadingBatches" class="spinner"></div>
+
+    <div class="empty-state"
+         *ngIf="!loadingBatches && batches.length === 0">
+      <div class="empty-state-icon">📂</div>
+      <div class="empty-state-text">Aucun import effectué</div>
+    </div>
+
+    <div class="table-wrap"
+         *ngIf="!loadingBatches && batches.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fichier</th>
+            <th>CUT_OFF_ID</th>
+            <th>Lignes</th>
+            <th>Statut</th>
+            <th>Importé par</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let b of batches">
+            <td class="mono">{{ b.id }}</td>
+            <td>
+              <span class="file-icon">
+                {{ b.fileName.endsWith('.xlsx') ? '📗' : '📄' }}
+              </span>
+              {{ b.fileName }}
+            </td>
+            <td class="mono"><strong>{{ b.cutOffId }}</strong></td>
+            <td>{{ b.totalRows | number }}</td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadge(b.status)">
+                {{ b.status }}
+              </span>
+            </td>
+            <td>{{ b.importedBy }}</td>
+            <td>{{ b.importedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

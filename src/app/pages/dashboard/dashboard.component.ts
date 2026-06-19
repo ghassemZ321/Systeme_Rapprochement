@@ -1,162 +1,88 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api.service';
-import { ReconciliationResponse, ResultDetail } from '../../models/models';
+import { BatchSummary, ReconciliationSummary } from '../../models/models';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css'
+  styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
+  batches: BatchSummary[] = [];
+  jobs: ReconciliationSummary[] = [];
+  loading = true;
+  error = '';
 
-  selectedFile: File | null = null;
-  importFileId: number | null = null;
-  jobId: number | null = null;
-  summary: ReconciliationResponse | null = null;
-  results: ResultDetail[] = [];
-  message = '';
-  loading = false;
+  totalBatches = 0;
+  totalImported = 0;
+  totalReconciled = 0;
+  conformeRate = 0;
+  lastJob: ReconciliationSummary | null = null;
 
-  constructor(
-    private apiService: ApiService,
-    private authService: AuthService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  constructor(private api: ApiService) {}
 
-  getFullName(): string {
-    return this.authService.getFullName();
+  ngOnInit(): void {
+    this.loadData();
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-      this.message = `Fichier selectionne : ${this.selectedFile.name}`;
-      this.cdr.detectChanges();
-    }
-  }
-
-  onImport(): void {
-    if (!this.selectedFile) {
-      this.message = 'Veuillez selectionner un fichier';
-      this.cdr.detectChanges();
-      return;
-    }
+  loadData(): void {
     this.loading = true;
-    this.cdr.detectChanges();
-    this.apiService.importExcel(this.selectedFile).subscribe({
-      next: (res) => {
-        this.importFileId = res.importFileId;
-        this.message = `Import reussi : ${res.totalRows} lignes (fichier #${res.importFileId})`;
-        this.loading = false;
-        this.cdr.detectChanges();
+    this.error = '';
+
+    this.api.getBatches().subscribe({
+      next: (batches) => {
+        this.batches = batches;
+        this.totalBatches = batches.length;
+        this.totalImported = batches.filter(b => b.status === 'IMPORTED' || b.status === 'RECONCILED').length;
+        this.totalReconciled = batches.filter(b => b.status === 'RECONCILED').length;
+
+        this.api.getJobs().subscribe({
+          next: (jobs) => {
+            this.jobs = jobs;
+            this.lastJob = jobs.length > 0 ? jobs[0] : null;
+            if (this.lastJob) {
+              const total = (this.lastJob.totalConforme || 0) + (this.lastJob.totalNonConforme || 0);
+              this.conformeRate = total > 0 ? Math.round(((this.lastJob.totalConforme || 0) / total) * 100) : 0;
+            }
+            this.loading = false;
+          },
+          error: () => { this.loading = false; }
+        });
       },
       error: () => {
-        this.message = 'Erreur lors de l\'import';
+        this.error = 'Erreur lors du chargement des données.';
         this.loading = false;
-        this.cdr.detectChanges();
       }
     });
   }
 
-  onReconcile(): void {
-    if (this.importFileId === null) {
-      this.message = 'Veuillez d\'abord importer un fichier';
-      this.cdr.detectChanges();
-      return;
-    }
-    this.loading = true;
-    this.cdr.detectChanges();
-    this.apiService.reconcile(this.importFileId).subscribe({
-      next: (res) => {
-        this.summary = res;
-        this.jobId = res.jobId;
-        this.message = 'Rapprochement termine';
-        this.cdr.detectChanges();
-        this.loadResults();
-      },
-      error: () => {
-        this.message = 'Erreur lors du rapprochement';
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  loadResults(): void {
-    if (this.jobId === null) return;
-    this.apiService.getResults(this.jobId).subscribe({
-      next: (res) => {
-        this.results = res;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.message = 'Erreur lors du chargement des resultats';
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  onDownloadReport(): void {
-    if (this.jobId === null) return;
-    this.apiService.downloadReport(this.jobId).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `rapport_job_${this.jobId}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: () => {
-        this.message = 'Erreur lors du telechargement';
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  getStatusClass(status: string): string {
+  getStatusBadge(status: string): string {
     switch (status) {
-      case 'MATCHED': return 'status-matched';
-      case 'AMOUNT_MISMATCH': return 'status-mismatch';
-      case 'EXCEL_ONLY': return 'status-excel';
-      case 'ORACLE_ONLY': return 'status-oracle';
-      default: return '';
+      case 'IMPORTED': return 'badge badge-imported';
+      case 'RECONCILED': return 'badge badge-reconciled';
+      case 'IMPORTING': return 'badge badge-importing';
+      case 'ERROR': return 'badge badge-error';
+      default: return 'badge';
     }
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
-  }
-
-  getInitials(): string {
-    const name = this.authService.getFullName();
-    if (!name) return '?';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
   }
 
   getStatusLabel(status: string): string {
     switch (status) {
-      case 'MATCHED': return 'Conforme';
-      case 'AMOUNT_MISMATCH': return 'Écart montant';
-      case 'EXCEL_ONLY': return 'Excel uniquement';
-      case 'ORACLE_ONLY': return 'Oracle uniquement';
+      case 'IMPORTED': return 'Importé';
+      case 'RECONCILED': return 'Rapproché';
+      case 'IMPORTING': return 'En cours';
+      case 'ERROR': return 'Erreur';
+      case 'COMPLETED': return 'Terminé';
       default: return status;
     }
   }
 
-
+  formatDate(date: string): string {
+    if (!date) return '-';
+    return new Date(date).toLocaleString('fr-FR');
+  }
 }

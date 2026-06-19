@@ -1,0 +1,85 @@
+<div class="layout">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <img src="logo.png" alt="BAMIS">
+      <span>BAMIS</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+      <div class="nav-section">Principal</div>
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
+        <i class="fas fa-chart-line nav-icon"></i>
+        Tableau de bord
+      </a>
+
+      <div class="nav-section">Import & Rapprochement</div>
+      <a class="nav-item" routerLink="/import" routerLinkActive="active">
+        <i class="fas fa-file-upload nav-icon"></i>
+        Importer un fichier
+      </a>
+
+      <a class="nav-item" routerLink="/reconciliation" routerLinkActive="active"
+         *ngIf="auth.canReconcile()">
+        <i class="fas fa-exchange-alt nav-icon"></i>
+        Rapprochement
+      </a>
+
+      <a class="nav-item" routerLink="/reports" routerLinkActive="active"
+         *ngIf="auth.canReconcile()">
+        <i class="fas fa-file-excel nav-icon"></i>
+        Rapports
+      </a>
+
+      <ng-container *ngIf="auth.isAdmin()">
+        <div class="nav-section">Administration</div>
+
+        <a class="nav-item" routerLink="/admin/users" routerLinkActive="active">
+          <i class="fas fa-users nav-icon"></i>
+          Utilisateurs
+        </a>
+
+        <a class="nav-item" routerLink="/admin/config" routerLinkActive="active">
+          <i class="fas fa-cog nav-icon"></i>
+          Configuration
+        </a>
+
+        <a class="nav-item" routerLink="/admin/audit" routerLinkActive="active">
+          <i class="fas fa-clipboard-list nav-icon"></i>
+          Journal d'audit
+        </a>
+      </ng-container>
+
+    </nav>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">{{ auth.getInitials() }}</div>
+        <div class="avatar-info">
+          <div class="avatar-name">{{ auth.getFullName() }}</div>
+          <div class="avatar-role">
+            <i class="fas fa-circle" style="font-size:6px; color:#4ade80"></i>
+            {{ auth.getRole() }}
+          </div>
+        </div>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        <i class="fas fa-sign-out-alt"></i>
+        Déconnexion
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ══ MAIN ══════════════════════════════════════════════════ -->
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
+
+</div>

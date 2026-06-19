@@ -1,0 +1,92 @@
+<div class="users">
+  <div class="page-header">
+    <h2><i class="fas fa-users"></i> Gestion des utilisateurs</h2>
+    <button class="btn-add" (click)="showForm = !showForm">
+      <i class="fas" [class.fa-plus]="!showForm" [class.fa-times]="showForm"></i>
+      {{ showForm ? 'Annuler' : 'Nouvel utilisateur' }}
+    </button>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+  <div *ngIf="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>
+
+  <div class="section-card form-card" *ngIf="showForm">
+    <h3><i class="fas fa-user-plus"></i> Créer un utilisateur</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Identifiant *</label>
+        <input type="text" [(ngModel)]="newUser.username" placeholder="Ex: jdupont" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Nom complet *</label>
+        <input type="text" [(ngModel)]="newUser.fullName" placeholder="Ex: Jean Dupont" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label>Rôle *</label>
+        <select [(ngModel)]="newUser.role" class="form-select">
+          <option value="ADMIN">Administrateur</option>
+          <option value="SUPERVISEUR">Superviseur</option>
+          <option value="AGENT">Agent</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Mot de passe initial *</label>
+        <input type="password" [(ngModel)]="newUser.password" placeholder="Mot de passe temporaire" class="form-input" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-save" (click)="createUser()" [disabled]="saving">
+        <i class="fas fa-save"></i>
+        {{ saving ? 'Création...' : "Créer l'utilisateur" }}
+      </button>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3><i class="fas fa-list"></i> Liste des utilisateurs ({{ users.length }})</h3>
+
+    <div *ngIf="loading" class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i> Chargement...
+    </div>
+
+    <table *ngIf="!loading" class="data-table">
+      <thead>
+        <tr>
+          <th>Identifiant</th>
+          <th>Nom complet</th>
+          <th>Rôle</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of users">
+          <td><strong>{{ u.username }}</strong></td>
+          <td>{{ u.fullName }}</td>
+          <td><span [class]="getRoleBadge(u.role)">{{ u.role }}</span></td>
+          <td>
+            <span class="badge"
+              [class.badge-active]="u.active === 1"
+              [class.badge-inactive]="u.active !== 1">
+              {{ u.active === 1 ? 'Actif' : 'Inactif' }}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button class="btn-action btn-toggle"
+              (click)="toggleUser(u.id, u.active)"
+              [title]="u.active === 1 ? 'Désactiver' : 'Activer'">
+              <i class="fas"
+                [class.fa-user-slash]="u.active === 1"
+                [class.fa-user-check]="u.active !== 1"></i>
+            </button>
+            <button class="btn-action btn-reset"
+              (click)="resetPassword(u.id, u.username)"
+              title="Réinitialiser le mot de passe">
+              <i class="fas fa-key"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

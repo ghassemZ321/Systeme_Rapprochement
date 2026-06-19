@@ -1,0 +1,118 @@
+<div class="reconciliation">
+  <div class="page-header">
+    <h2><i class="fas fa-exchange-alt"></i> Rapprochement</h2>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+  <div *ngIf="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>
+
+  <div class="section-card">
+    <h3><i class="fas fa-play-circle"></i> Lancer un rapprochement</h3>
+
+    <div *ngIf="loadingBatches" class="loading-inline">
+      <i class="fas fa-spinner fa-spin"></i> Chargement des batches...
+    </div>
+
+    <div *ngIf="!loadingBatches && batches.length === 0" class="empty-state-inline">
+      <i class="fas fa-info-circle"></i> Aucun batch disponible. Importez d'abord un fichier.
+    </div>
+
+    <div *ngIf="!loadingBatches && batches.length > 0" class="run-form">
+      <div class="form-group">
+        <label>Sélectionner le batch à rapprocher</label>
+        <select [(ngModel)]="selectedBatchId" class="form-select">
+          <option [ngValue]="null" disabled>-- Choisir un batch --</option>
+          <option *ngFor="let b of batches" [ngValue]="b.id">
+            {{ b.cutOffId }} — {{ b.fileName }} ({{ b.totalRows }} lignes)
+          </option>
+        </select>
+      </div>
+      <button class="btn-run" (click)="runReconciliation()" [disabled]="!selectedBatchId || running">
+        <i class="fas fa-cogs" [class.fa-spin]="running"></i>
+        {{ running ? 'Rapprochement en cours...' : 'Lancer le rapprochement' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <h3><i class="fas fa-history"></i> Historique des rapprochements</h3>
+
+    <div *ngIf="loadingJobs" class="loading-inline">
+      <i class="fas fa-spinner fa-spin"></i> Chargement...
+    </div>
+
+    <div *ngIf="!loadingJobs && jobs.length === 0" class="empty-state-inline">
+      <i class="fas fa-inbox"></i> Aucun rapprochement effectué.
+    </div>
+
+    <table *ngIf="!loadingJobs && jobs.length > 0" class="data-table">
+      <thead>
+        <tr>
+          <th>CUT_OFF_ID</th>
+          <th>Conformes</th>
+          <th>Non conformes</th>
+          <th>Statut</th>
+          <th>Date</th>
+          <th>Résultats</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let j of jobs" [class.selected-row]="selectedJobId === j.jobId">
+          <td><code>{{ j.cutOffId }}</code></td>
+          <td class="text-green">{{ j.totalConforme }}</td>
+          <td class="text-red">{{ j.totalNonConforme }}</td>
+          <td><span [class]="getStatusBadge(j.jobStatus)">{{ getStatusLabel(j.jobStatus) }}</span></td>
+          <td>{{ formatDate(j.launchedAt) }}</td>
+          <td>
+            <button class="btn-detail" (click)="loadResults(j.jobId)" [disabled]="loadingResults">
+              <i class="fas fa-eye"></i> Voir
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-card" *ngIf="selectedJobId">
+    <h3><i class="fas fa-list-alt"></i> Résultats du rapprochement</h3>
+
+    <div *ngIf="loadingResults" class="loading-inline">
+      <i class="fas fa-spinner fa-spin"></i> Chargement des résultats...
+    </div>
+
+    <div *ngIf="!loadingResults && results.length === 0" class="empty-state-inline">
+      Aucun résultat disponible.
+    </div>
+
+    <div *ngIf="!loadingResults && results.length > 0" class="results-wrapper">
+      <div class="results-summary">
+        <span class="badge badge-conforme">{{ conformeCount }} conformes</span>
+        <span class="badge badge-non-conforme">{{ nonConformeCount }} non conformes</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Référence Switch</th>
+            <th>Montant Excel</th>
+            <th>Montant Core</th>
+            <th>Présence</th>
+            <th>Conformité</th>
+            <th>Code anomalie</th>
+            <th>Détails</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of results">
+            <td><code>{{ r.switchRef }}</code></td>
+            <td>{{ r.montantExcel | number:'1.2-2' }}</td>
+            <td>{{ r.montantCore | number:'1.2-2' }}</td>
+            <td>{{ r.presence }}</td>
+            <td><span [class]="getStatusBadge(r.conformite)">{{ getStatusLabel(r.conformite) }}</span></td>
+            <td>{{ r.anomalyCode || '-' }}</td>
+            <td>{{ r.details || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

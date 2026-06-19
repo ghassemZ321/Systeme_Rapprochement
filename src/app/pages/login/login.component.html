@@ -1,40 +1,63 @@
 <div class="login-page">
   <div class="login-box">
+
+    <!-- Logo -->
     <div class="login-logo">
-      <img src="/logo.png" alt="Logo Banque">
+      <img src="logo.png" alt="logo-bamis">
+      <h1>BAMIS</h1>
+      <p>Système de Rapprochement Bancaire</p>
     </div>
 
-    <h2>Connexion</h2>
-
-    <form (ngSubmit)="onLogin()">
-      <div class="field">
-        <label for="username">Identifiant</label>
-        <input id="username" type="text" autocomplete="username"
-               [(ngModel)]="username" name="username"
-               placeholder="Votre identifiant" required />
-      </div>
+    <!-- Formulaire -->
+    <form (ngSubmit)="onLogin()" class="login-form">
 
       <div class="field">
-        <label for="password">Mot de passe</label>
-        <input id="password" type="password" autocomplete="current-password"
-               [(ngModel)]="password" name="password"
-               placeholder="Votre mot de passe" required />
+        <label>Identifiant</label>
+        <div class="input-wrap">
+          <span class="input-icon"><i class="fas fa-user"></i></span>
+          <input
+            type="text"
+            [(ngModel)]="username"
+            name="username"
+            placeholder="Votre identifiant"
+            autocomplete="username"
+            [disabled]="loading"
+          />
+        </div>
       </div>
 
-      <div class="field-row">
-        <label class="remember">
-          <input type="checkbox" [(ngModel)]="rememberMe" name="rememberMe" />
-         
-        </label>
+      <div class="field">
+        <label>Mot de passe</label>
+        <div class="input-wrap">
+          <span class="input-icon"><i class="fas fa-lock"></i></span>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Votre mot de passe"
+            autocomplete="current-password"
+            [disabled]="loading"
+          />
+          <button type="button" class="toggle-pwd" (click)="togglePassword()">
+            <i [class]="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+          </button>
+        </div>
       </div>
 
-      <div class="login-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+      <div class="alert-danger" *ngIf="error">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
+      </div>
 
-      <button type="submit" class="ui-btn ui-btn-primary login-submit" [disabled]="loading">
-        {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
+      <button type="submit" class="btn-login" [disabled]="loading">
+        <span *ngIf="!loading"><i class="fas fa-sign-in-alt"></i> SE CONNECTER</span>
+        <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Connexion...</span>
       </button>
-    </form>
 
-    <p class="login-footer">© 2026 BAMIS — Espace professionnel sécurisé</p>
+    </form>
+    <br>
+    <p class="login-footer">
+      <i class="fas fa-shield-alt"></i>© 2026 BAMIS — Espace professionnel sécurisé
+    </p>
+
   </div>
 </div>
