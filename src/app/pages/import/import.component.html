@@ -1,255 +1,215 @@
-<div class="topbar">
-  <div class="topbar-title">Import de fichier</div>
-</div>
+<div class="import-page">
 
-<div class="page-body">
-
-  <!-- ── Zone upload ─────────────────────────────────────────── -->
-  <div class="card">
-    <div class="page-header" style="margin-bottom:24px;">
+  <!-- En-tete -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="fas fa-file-upload"></i>
+      </div>
       <div>
-        <div class="page-title" style="font-size:17px;">
-          Importer un fichier de compensation
-        </div>
-        <div class="page-subtitle">
-          Formats acceptés : .xlsx, .csv — Maximum 100 000 lignes
-        </div>
+        <h2>Import de fichier</h2>
+        <p>Importez votre fichier de compensation Switch</p>
       </div>
     </div>
+    <div class="header-stats">
+      <div class="stat-pill">
+        <i class="fas fa-database"></i>
+        <span>{{ batches.length }} imports</span>
+      </div>
+    </div>
+  </div>
 
-    <div class="import-grid">
+  <!-- Zone principale -->
+  <div class="import-main">
 
-      <!-- Drop zone -->
-      <label class="file-upload"
+    <!-- Colonne gauche : Upload -->
+    <div class="upload-card">
+      <div class="upload-card-header">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <span>Selectionner un fichier</span>
+      </div>
+
+      <label class="drop-zone"
+             [class.has-file]="selectedFile"
+             [class.drag-over]="isDragging"
              (dragover)="onDragOver($event)"
+             (dragleave)="isDragging = false"
              (drop)="onDrop($event)">
-        <input type="file" accept=".xlsx,.csv"
-               (change)="onFileSelected($event)" />
-        <div class="file-upload-icon">
-          {{ selectedFile ? '✅' : '📂' }}
+        <input type="file" accept=".xlsx,.csv" (change)="onFileSelected($event)" />
+
+        <div class="drop-zone-content" *ngIf="!selectedFile">
+          <div class="drop-icon"><i class="fas fa-file-excel"></i></div>
+          <p class="drop-title">Glissez votre fichier ici</p>
+          <p class="drop-sub">ou <strong>cliquez pour parcourir</strong></p>
+          <div class="format-tags">
+            <span class="format-tag xlsx">XLSX</span>
+            <span class="format-tag csv">CSV</span>
+          </div>
+          <p class="drop-limit">Maximum 100 000 lignes</p>
         </div>
-        <div class="file-upload-text" *ngIf="!selectedFile">
-          Glissez votre fichier ici<br/>
-          ou <strong>cliquez pour parcourir</strong>
-        </div>
-        <div class="file-upload-name" *ngIf="selectedFile">
-          {{ selectedFile.name }}<br/>
-          <small>{{ formatSize(selectedFile.size) }}</small>
-        </div>
-        <div class="file-format-tags">
-          <span class="format-tag">XLSX</span>
-          <span class="format-tag">CSV</span>
+
+        <div class="file-selected-content" *ngIf="selectedFile">
+          <div class="file-selected-icon"><i class="fas fa-check-circle"></i></div>
+          <p class="file-selected-name">{{ selectedFile.name }}</p>
+          <p class="file-selected-size">{{ formatSize(selectedFile.size) }}</p>
+          <span class="file-selected-badge">
+            {{ selectedFile.name.endsWith('.xlsx') ? 'Excel' : 'CSV' }}
+          </span>
         </div>
       </label>
 
-      <!-- Formulaire -->
-      <div class="import-form">
+      <div class="accepted-formats">
+        <div class="format-item">
+          <i class="fas fa-file-excel" style="color:#16a34a"></i>
+          <span>Excel (.xlsx)</span>
+        </div>
+        <div class="format-sep">·</div>
+        <div class="format-item">
+          <i class="fas fa-file-csv" style="color:#0369a1"></i>
+          <span>CSV (.csv)</span>
+        </div>
+      </div>
+    </div>
 
-        <!-- Info fichier sélectionné -->
-        <div class="file-info-box" *ngIf="selectedFile">
-          <div class="file-info-row">
-            <span class="file-info-label">Nom</span>
-            <span class="file-info-val">{{ selectedFile.name }}</span>
+    <!-- Colonne droite : Formulaire -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <i class="fas fa-sliders-h"></i>
+        <span>Parametres d'import</span>
+      </div>
+
+      <div class="file-info-block" *ngIf="selectedFile">
+        <div class="file-info-title">
+          <i class="fas fa-info-circle"></i> Fichier selectionne
+        </div>
+        <div class="file-info-grid">
+          <div class="file-info-item">
+            <span class="fi-label">Nom</span>
+            <span class="fi-value">{{ selectedFile.name }}</span>
           </div>
-          <div class="file-info-row">
-            <span class="file-info-label">Taille</span>
-            <span class="file-info-val">{{ formatSize(selectedFile.size) }}</span>
+          <div class="file-info-item">
+            <span class="fi-label">Taille</span>
+            <span class="fi-value">{{ formatSize(selectedFile.size) }}</span>
           </div>
-          <div class="file-info-row">
-            <span class="file-info-label">Format</span>
-            <span class="file-info-val">
-              {{ selectedFile.name.endsWith('.xlsx') ? 'Excel (.xlsx)' : 'CSV (.csv)' }}
-            </span>
-          </div>
-        </div>
-
-        <!-- CUT_OFF_ID -->
-        <div class="field">
-          <label>
-            CUT_OFF_ID
-            <span style="color:#c62828;">*</span>
-            <span class="field-hint">
-              Identifiant unique de la période de compensation
-            </span>
-          </label>
-          <input
-            type="text"
-            [(ngModel)]="cutOffId"
-            name="cutOffId"
-            placeholder="Ex: 202601411"
-            [disabled]="loading"
-            class="cutoff-input"
-          />
-        </div>
-
-        <!-- Règles métier -->
-        <div class="rules-box">
-          <div class="rules-title">⚠️ Règles d'import</div>
-          <ul class="rules-list">
-            <li>Un CUT_OFF_ID ne peut être importé qu'une seule fois</li>
-            <li>La première ligne doit être l'en-tête</li>
-            <li>Les colonnes doivent respecter le format BAMIS</li>
-            <li>Maximum 100 000 lignes par fichier</li>
-          </ul>
-        </div>
-
-        <!-- Messages -->
-        <div class="alert alert-danger" *ngIf="error">
-          ⚠️ {{ error }}
-        </div>
-
-        <div class="alert alert-success"
-             *ngIf="result && result.status === 'IMPORTED'">
-          ✅ {{ result.message }}<br/>
-          <div class="result-details">
-            <span>🆔 Batch ID : <strong>{{ result.batchId }}</strong></span>
-            <span>📋 CUT_OFF_ID : <strong>{{ result.cutOffId }}</strong></span>
-            <span>📊 Lignes : <strong>{{ result.totalRows }}</strong></span>
+          <div class="file-info-item">
+            <span class="fi-label">Format</span>
+            <span class="fi-value">{{ selectedFile.name.endsWith('.xlsx') ? 'Excel (.xlsx)' : 'CSV (.csv)' }}</span>
           </div>
         </div>
+      </div>
 
-        <div class="alert alert-danger"
-             *ngIf="result && result.status === 'REJECTED'">
-          ❌ {{ result.message }}
+      <div class="field-group">
+        <label class="field-label">CUT_OFF_ID <span class="required">*</span></label>
+        <p class="field-desc">Identifiant unique de la periode de compensation</p>
+        <div class="input-wrapper">
+          <i class="fas fa-hashtag input-icon"></i>
+          <input type="text"
+                 [(ngModel)]="cutOffId"
+                 placeholder="Ex: 20260621"
+                 [disabled]="loading"
+                 class="field-input" />
         </div>
+      </div>
 
-        <div class="alert alert-danger"
-             *ngIf="result && result.status === 'ERROR'">
-          ❌ {{ result.message }}
+      <div class="rules-block">
+        <div class="rules-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Regles d'import</span>
         </div>
+        <ul class="rules-list">
+          <li><i class="fas fa-check"></i> Un CUT_OFF_ID unique par import</li>
+          <li><i class="fas fa-check"></i> La premiere ligne doit etre l'en-tete</li>
+          <li><i class="fas fa-check"></i> Colonnes au format BAMIS obligatoires</li>
+          <li><i class="fas fa-check"></i> Maximum 100 000 lignes par fichier</li>
+        </ul>
+      </div>
 
-        <!-- Bouton import -->
-        <button
-          class="btn btn-primary btn-lg btn-full import-btn"
-          (click)="onImport()"
-          [disabled]="loading || !selectedFile || !cutOffId.trim()">
-          <span *ngIf="!loading">📤 Importer le fichier</span>
+      <div class="alert alert-error" *ngIf="error">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      </div>
+
+      <div class="alert alert-success" *ngIf="result && result.status === 'IMPORTED'">
+        <i class="fas fa-check-circle"></i> {{ result.message }}
+        <div class="result-pills">
+          <span class="result-pill"><i class="fas fa-hashtag"></i> Batch {{ result.batchId }}</span>
+          <span class="result-pill"><i class="fas fa-key"></i> {{ result.cutOffId }}</span>
+          <span class="result-pill"><i class="fas fa-list"></i> {{ result.totalRows }} lignes</span>
+        </div>
+      </div>
+
+      <div class="alert alert-error" *ngIf="result && (result.status === 'REJECTED' || result.status === 'ERROR')">
+        <i class="fas fa-times-circle"></i> {{ result.message }}
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-import" (click)="onImport()"
+                [disabled]="loading || !selectedFile || !cutOffId.trim()">
+          <span *ngIf="!loading"><i class="fas fa-upload"></i> Importer le fichier</span>
           <span *ngIf="loading" class="loading-text">
-            <span class="dot-spinner"></span>
-            Importation en cours...
+            <span class="spinner-small"></span> Importation en cours...
           </span>
         </button>
-
-        <!-- Reset -->
-        <button
-          class="btn btn-ghost btn-full"
-          style="margin-top:8px;"
-          (click)="selectedFile = null; cutOffId = ''; result = null; error = ''"
-          *ngIf="!loading">
-          🔄 Réinitialiser
+        <button class="btn-reset"
+                (click)="selectedFile = null; cutOffId = ''; result = null; error = ''"
+                *ngIf="!loading">
+          <i class="fas fa-redo"></i> Reinitialiser
         </button>
-
       </div>
     </div>
   </div>
 
-  <!-- ── Colonnes attendues ────────────────────────────────────── -->
-  <div class="card">
-    <div class="page-title" style="font-size:15px; margin-bottom:16px;">
-      📋 Format de fichier attendu
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Colonne</th>
-            <th>Nom</th>
-            <th>Type</th>
-            <th>Obligatoire</th>
-            <th>Exemple</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="mono">0</td>
-            <td>CUT_OFF_ID</td>
-            <td><span class="badge badge-info">Numérique</span></td>
-            <td><span class="badge badge-success">Oui</span></td>
-            <td class="mono">202601411</td>
-          </tr>
-          <tr>
-            <td class="mono">1</td>
-            <td>SWITCH_REF</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-success">Oui</span></td>
-            <td class="mono">827690312946</td>
-          </tr>
-          <tr>
-            <td class="mono">2</td>
-            <td>TRANS_DATE</td>
-            <td><span class="badge badge-warning">Date/Heure</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">05/21/2026 01:35:31 PM</td>
-          </tr>
-          <tr>
-            <td class="mono">3</td>
-            <td>ORIG_INST</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">8401</td>
-          </tr>
-          <tr>
-            <td class="mono">4</td>
-            <td>ORIG_PHONE_NUMBER</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">22246487639</td>
-          </tr>
-          <tr>
-            <td class="mono">5</td>
-            <td>RECEIV_INST_ID</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">18</td>
-          </tr>
-          <tr>
-            <td class="mono">6</td>
-            <td>RECEIV_PHONE_NUMBER</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">22246487628</td>
-          </tr>
-          <tr>
-            <td class="mono">7</td>
-            <td>MONTANT</td>
-            <td><span class="badge badge-orange">Décimal</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">2000.00</td>
-          </tr>
-          <tr>
-            <td class="mono">8</td>
-            <td>TX_TYPE</td>
-            <td><span class="badge badge-info">Texte</span></td>
-            <td><span class="badge badge-gray">Non</span></td>
-            <td class="mono">T0011</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Historique des imports ────────────────────────────────── -->
-  <div class="card">
-    <div class="page-header" style="margin-bottom:16px;">
-      <div class="page-title" style="font-size:16px;">
-        Historique des imports
+  <!-- Historique des imports -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">
+        <i class="fas fa-history"></i> Historique des imports
       </div>
-      <button class="btn btn-ghost btn-sm" (click)="loadBatches()">
-        🔄 Actualiser
+      <button class="btn-refresh" (click)="loadBatches()">
+        <i class="fas fa-sync-alt"></i> Actualiser
       </button>
     </div>
 
-    <div *ngIf="loadingBatches" class="spinner"></div>
-
-    <div class="empty-state"
-         *ngIf="!loadingBatches && batches.length === 0">
-      <div class="empty-state-icon">📂</div>
-      <div class="empty-state-text">Aucun import effectué</div>
+    <!-- FILTRES DATE -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date debut</label>
+        <input type="date" [(ngModel)]="dateDebut" class="filter-input" />
+      </div>
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date fin</label>
+        <input type="date" [(ngModel)]="dateFin" class="filter-input" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn-filter" (click)="appliquerFiltres()">
+          <i class="fas fa-search"></i> Filtrer
+        </button>
+        <button class="btn-reinit" (click)="reinitialiserFiltres()">
+          <i class="fas fa-times"></i> Reinitialiser
+        </button>
+      </div>
     </div>
 
-    <div class="table-wrap"
-         *ngIf="!loadingBatches && batches.length > 0">
-      <table>
+    <!-- Info resultats -->
+    <div class="history-info">
+      <span><strong>{{ batchesFiltres.length }}</strong> resultat(s) trouve(s)</span>
+      <span *ngIf="totalPages > 0">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    </div>
+
+    <!-- Chargement -->
+    <div class="loading-block" *ngIf="loadingBatches">
+      <div class="spinner-lg"></div>
+      <span>Chargement...</span>
+    </div>
+
+    <!-- Vide -->
+    <div class="empty-block" *ngIf="!loadingBatches && batchesFiltres.length === 0">
+      <i class="fas fa-inbox"></i>
+      <p>Aucun import trouve pour cette periode</p>
+    </div>
+
+    <!-- Tableau -->
+    <div class="table-wrapper" *ngIf="!loadingBatches && batchesFiltres.length > 0">
+      <table class="data-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -257,23 +217,24 @@
             <th>CUT_OFF_ID</th>
             <th>Lignes</th>
             <th>Statut</th>
-            <th>Importé par</th>
+            <th>Importe par</th>
             <th>Date</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let b of batches">
-            <td class="mono">{{ b.id }}</td>
-            <td>
-              <span class="file-icon">
-                {{ b.fileName.endsWith('.xlsx') ? '📗' : '📄' }}
-              </span>
+          <tr *ngFor="let b of batchesPage">
+            <td class="col-num">{{ b.id }}</td>
+            <td class="file-name">
+              <i class="fas"
+                 [class.fa-file-excel]="b.fileName.endsWith('.xlsx')"
+                 [class.fa-file-csv]="!b.fileName.endsWith('.xlsx')"
+                 style="color:#16a34a; margin-right:6px;"></i>
               {{ b.fileName }}
             </td>
-            <td class="mono"><strong>{{ b.cutOffId }}</strong></td>
+            <td><code>{{ b.cutOffId }}</code></td>
             <td>{{ b.totalRows | number }}</td>
             <td>
-              <span class="badge" [ngClass]="getStatusBadge(b.status)">
+              <span class="status-badge" [ngClass]="getStatusBadge(b.status)">
                 {{ b.status }}
               </span>
             </td>
@@ -283,6 +244,29 @@
         </tbody>
       </table>
     </div>
-  </div>
 
+    <!-- PAGINATION -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">
+        &laquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">
+        &lsaquo;
+      </button>
+      <button
+        *ngFor="let p of getPages()"
+        class="page-btn"
+        [class.active]="p === currentPage"
+        (click)="goToPage(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">
+        &rsaquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">
+        &raquo;
+      </button>
+    </div>
+
+  </div>
 </div>

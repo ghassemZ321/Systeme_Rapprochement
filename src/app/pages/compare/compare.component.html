@@ -1,0 +1,203 @@
+<div class="compare-page">
+
+  <div class="page-header">
+    <h2><i class="fas fa-code-branch"></i> Comparaison de périodes</h2>
+  </div>
+
+  <!-- Sélection des périodes -->
+  <div class="selection-card">
+    <h3><i class="fas fa-sliders-h"></i> Sélectionner les deux périodes</h3>
+    <div class="selection-grid">
+
+      <div class="periode-selector periode-a">
+        <div class="periode-label">
+          <span class="periode-badge badge-a">A</span>
+          Période A
+        </div>
+        <select [(ngModel)]="batchIdA" class="form-select">
+          <option [ngValue]="null">-- Choisir la période A --</option>
+          <option *ngFor="let b of batches" [ngValue]="b.id">
+            {{ b.cutOffId }} — {{ b.totalRows | number }} lignes
+          </option>
+        </select>
+      </div>
+
+      <div class="vs-separator">
+        <div class="vs-circle">VS</div>
+      </div>
+
+      <div class="periode-selector periode-b">
+        <div class="periode-label">
+          <span class="periode-badge badge-b">B</span>
+          Période B
+        </div>
+        <select [(ngModel)]="batchIdB" class="form-select">
+          <option [ngValue]="null">-- Choisir la période B --</option>
+          <option *ngFor="let b of batches" [ngValue]="b.id">
+            {{ b.cutOffId }} — {{ b.totalRows | number }} lignes
+          </option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="selection-actions">
+      <button class="btn-reset" (click)="reset()">
+        <i class="fas fa-times"></i> Réinitialiser
+      </button>
+      <button class="btn-compare" (click)="compare()" [disabled]="!batchIdA || !batchIdB || loading">
+        <i class="fas" [class.fa-code-branch]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+        {{ loading ? 'Comparaison...' : 'Comparer' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Erreur -->
+  <div *ngIf="error" class="alert alert-error">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+
+  <!-- Résultats -->
+  <ng-container *ngIf="compared && result">
+
+    <!-- Tableau comparatif -->
+    <div class="compare-card">
+      <h3><i class="fas fa-table"></i> Tableau comparatif</h3>
+      <div class="compare-table-wrapper">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th class="metric-col">Métrique</th>
+              <th class="col-a">
+                <span class="periode-badge badge-a">A</span>
+                {{ getBatchLabel(batchIdA!) }}
+              </th>
+              <th class="col-b">
+                <span class="periode-badge badge-b">B</span>
+                {{ getBatchLabel(batchIdB!) }}
+              </th>
+              <th class="col-diff">Différence (A - B)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="metric-name"><i class="fas fa-database"></i> Total transactions</td>
+              <td class="col-a">{{ formatNumber(result.periodeA.totalTransactions) }}</td>
+              <td class="col-b">{{ formatNumber(result.periodeB.totalTransactions) }}</td>
+              <td [class]="'col-diff ' + getDeltaClass(result.differences.deltaTotal)">
+                <i class="fas" [class]="getDeltaIcon(result.differences.deltaTotal)"></i>
+                {{ formatDelta(result.differences.deltaTotal) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-check-circle text-green"></i> Conformes</td>
+              <td class="col-a text-green"><strong>{{ formatNumber(result.periodeA.totalConformes) }}</strong></td>
+              <td class="col-b text-green"><strong>{{ formatNumber(result.periodeB.totalConformes) }}</strong></td>
+              <td [class]="'col-diff ' + getDeltaClass(result.differences.deltaConformes)">
+                <i class="fas" [class]="getDeltaIcon(result.differences.deltaConformes)"></i>
+                {{ formatDelta(result.differences.deltaConformes) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-times-circle text-red"></i> Non conformes</td>
+              <td class="col-a text-red"><strong>{{ formatNumber(result.periodeA.totalNonConformes) }}</strong></td>
+              <td class="col-b text-red"><strong>{{ formatNumber(result.periodeB.totalNonConformes) }}</strong></td>
+              <td [class]="'col-diff ' + getDeltaClass(result.differences.deltaNonConformes, true)">
+                <i class="fas" [class]="getDeltaIcon(result.differences.deltaNonConformes, true)"></i>
+                {{ formatDelta(result.differences.deltaNonConformes) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-exclamation-triangle text-orange"></i> Missing Core</td>
+              <td class="col-a">{{ formatNumber(result.periodeA.totalMissingCore) }}</td>
+              <td class="col-b">{{ formatNumber(result.periodeB.totalMissingCore) }}</td>
+              <td class="col-diff delta-neutral">—</td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-file-excel text-blue"></i> Missing Excel</td>
+              <td class="col-a">{{ formatNumber(result.periodeA.totalMissingExcel) }}</td>
+              <td class="col-b">{{ formatNumber(result.periodeB.totalMissingExcel) }}</td>
+              <td class="col-diff delta-neutral">—</td>
+            </tr>
+            <tr class="taux-row">
+              <td class="metric-name"><i class="fas fa-percentage text-purple"></i> Taux de conformité</td>
+              <td class="col-a"><strong>{{ result.periodeA.tauxConformite }}%</strong></td>
+              <td class="col-b"><strong>{{ result.periodeB.tauxConformite }}%</strong></td>
+              <td [class]="'col-diff ' + getDeltaClass(result.differences.deltaTaux)">
+                <i class="fas" [class]="getDeltaIcon(result.differences.deltaTaux)"></i>
+                {{ formatDelta(result.differences.deltaTaux) }}%
+              </td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-skull-crossbones text-red"></i> Anomalies critiques</td>
+              <td class="col-a">{{ formatNumber(result.periodeA.anomaliesCritiques) }}</td>
+              <td class="col-b">{{ formatNumber(result.periodeB.anomaliesCritiques) }}</td>
+              <td class="col-diff delta-neutral">—</td>
+            </tr>
+            <tr>
+              <td class="metric-name"><i class="fas fa-exclamation-circle text-orange"></i> Anomalies majeures</td>
+              <td class="col-a">{{ formatNumber(result.periodeA.anomaliesMajeures) }}</td>
+              <td class="col-b">{{ formatNumber(result.periodeB.anomaliesMajeures) }}</td>
+              <td class="col-diff delta-neutral">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-chart-bar"></i> Comparaison par indicateur
+        </div>
+        <div class="chart-wrapper">
+          <canvas #compareChart></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-spider"></i> Analyse radar
+        </div>
+        <div class="chart-wrapper">
+          <canvas #trendChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="conclusion-card">
+      <h3><i class="fas fa-lightbulb"></i> Conclusion</h3>
+      <div class="conclusion-grid">
+        <div class="conclusion-item" [class.positive]="result.differences.deltaTaux > 0" [class.negative]="result.differences.deltaTaux < 0" [class.neutral]="result.differences.deltaTaux === 0">
+          <i class="fas fa-percentage fa-2x"></i>
+          <div>
+            <strong>Taux de conformité</strong>
+            <p *ngIf="result.differences.deltaTaux > 0">La période A est meilleure de {{ result.differences.deltaTaux }}%</p>
+            <p *ngIf="result.differences.deltaTaux < 0">La période B est meilleure de {{ result.differences.deltaTaux * -1 }}%</p>
+            <p *ngIf="result.differences.deltaTaux === 0">Les deux périodes sont identiques</p>
+          </div>
+        </div>
+        <div class="conclusion-item" [class.positive]="result.differences.deltaConformes > 0" [class.negative]="result.differences.deltaConformes < 0" [class.neutral]="result.differences.deltaConformes === 0">
+          <i class="fas fa-check-double fa-2x"></i>
+          <div>
+            <strong>Transactions conformes</strong>
+            <p *ngIf="result.differences.deltaConformes > 0">+{{ result.differences.deltaConformes }} conformes supplémentaires en A</p>
+            <p *ngIf="result.differences.deltaConformes < 0">+{{ result.differences.deltaConformes * -1 }} conformes supplémentaires en B</p>
+            <p *ngIf="result.differences.deltaConformes === 0">Même nombre de conformes</p>
+          </div>
+        </div>
+        <div class="conclusion-item" [class.positive]="result.differences.deltaNonConformes < 0" [class.negative]="result.differences.deltaNonConformes > 0" [class.neutral]="result.differences.deltaNonConformes === 0">
+          <i class="fas fa-times-circle fa-2x"></i>
+          <div>
+            <strong>Non conformes</strong>
+            <p *ngIf="result.differences.deltaNonConformes < 0">La période A a {{ result.differences.deltaNonConformes * -1 }} anomalies de moins</p>
+            <p *ngIf="result.differences.deltaNonConformes > 0">La période A a {{ result.differences.deltaNonConformes }} anomalies de plus</p>
+            <p *ngIf="result.differences.deltaNonConformes === 0">Même nombre d'anomalies</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

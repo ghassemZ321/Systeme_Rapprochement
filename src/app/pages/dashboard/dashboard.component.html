@@ -1,4 +1,6 @@
 <div class="dashboard">
+
+  <!-- En-tête -->
   <div class="page-header">
     <h2><i class="fas fa-chart-bar"></i> Tableau de bord</h2>
     
@@ -12,66 +14,174 @@
     <i class="fas fa-spinner fa-spin"></i> Chargement...
   </div>
 
-  <ng-container *ngIf="!loading">
+  <ng-container *ngIf="!loading && stats">
+
+    <!-- KPI PRINCIPAUX -->
     <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-icon bg-blue"><i class="fas fa-file-upload"></i></div>
         <div class="kpi-content">
-          <span class="kpi-value">{{ totalBatches }}</span>
+          <span class="kpi-value">{{ formatNumber(stats.totalBatches) }}</span>
           <span class="kpi-label">Fichiers importés</span>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon bg-green"><i class="fas fa-check-circle"></i></div>
+        <div class="kpi-icon bg-purple"><i class="fas fa-database"></i></div>
         <div class="kpi-content">
-          <span class="kpi-value">{{ totalImported }}</span>
-          <span class="kpi-label">Imports réussis</span>
+          <span class="kpi-value">{{ formatNumber(stats.totalTransactions) }}</span>
+          <span class="kpi-label">Total transactions</span>
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon bg-purple"><i class="fas fa-exchange-alt"></i></div>
+        <div class="kpi-icon bg-green"><i class="fas fa-check-double"></i></div>
         <div class="kpi-content">
-          <span class="kpi-value">{{ totalReconciled }}</span>
+          <span class="kpi-value">{{ formatNumber(stats.batchsReconcilies) }}</span>
           <span class="kpi-label">Rapprochements</span>
         </div>
       </div>
       <div class="kpi-card">
         <div class="kpi-icon bg-orange"><i class="fas fa-percentage"></i></div>
         <div class="kpi-content">
-          <span class="kpi-value">{{ conformeRate }}%</span>
-          <span class="kpi-label">Taux conforme</span>
+          <span class="kpi-value">{{ stats.tauxConformite }}%</span>
+          <span class="kpi-label">Taux de conformité</span>
         </div>
       </div>
     </div>
 
-    <div class="section-card" *ngIf="lastJob">
-      <h3><i class="fas fa-history"></i> Dernier rapprochement</h3>
+    <!-- GRAPHIQUES LIGNE 1 : Donut + Barres -->
+    <div class="charts-row">
+
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-chart-pie"></i> Répartition des transactions
+        </div>
+        <div class="chart-wrapper">
+          <canvas #donutChart></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-chart-bar"></i> Anomalies par sévérité
+        </div>
+        <div class="chart-wrapper">
+          <canvas #barChart></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GRAPHIQUE LIGNE 2 : Courbe évolution -->
+    <div class="chart-card chart-full">
+      <div class="chart-title">
+        <i class="fas fa-chart-line"></i> Évolution des imports (5 derniers batches)
+      </div>
+      <div class="chart-wrapper chart-wrapper-wide">
+        <canvas #lineChart></canvas>
+      </div>
+    </div>
+
+    <!-- CONFORMITÉ + ANOMALIES -->
+    <div class="section-row">
+
+      <div class="section-card flex-1">
+        <h3><i class="fas fa-balance-scale"></i> Résultats de rapprochement</h3>
+        <div class="conformite-grid">
+          <div class="conf-item conf-ok">
+            <span class="conf-count">{{ formatNumber(stats.totalConformes) }}</span>
+            <span class="conf-label"><i class="fas fa-check-circle"></i> Conformes</span>
+          </div>
+          <div class="conf-item conf-ko">
+            <span class="conf-count">{{ formatNumber(stats.totalNonConformes) }}</span>
+            <span class="conf-label"><i class="fas fa-times-circle"></i> Non conformes</span>
+          </div>
+          <div class="conf-item conf-missing">
+            <span class="conf-count">{{ formatNumber(stats.totalMissingCore) }}</span>
+            <span class="conf-label"><i class="fas fa-exclamation-triangle"></i> Absentes Core</span>
+          </div>
+          <div class="conf-item conf-missing2">
+            <span class="conf-count">{{ formatNumber(stats.totalMissingExcel) }}</span>
+            <span class="conf-label"><i class="fas fa-file-excel"></i> Absentes Excel</span>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-label">
+            <span>Conformité globale</span>
+            <span>{{ stats.tauxConformite }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill"
+                 [style.width.%]="stats.tauxConformite"
+                 [class.fill-green]="stats.tauxConformite >= 80"
+                 [class.fill-orange]="stats.tauxConformite >= 50 && stats.tauxConformite < 80"
+                 [class.fill-red]="stats.tauxConformite < 50">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card flex-1">
+        <h3><i class="fas fa-exclamation-triangle"></i> Anomalies par sévérité</h3>
+        <div class="anomaly-grid">
+          <div class="anomaly-item" [class]="getSeverityClass(stats.anomaliesCritiques, 'critique')">
+            <div class="anomaly-header">
+              <i class="fas fa-skull-crossbones"></i><span>CRITIQUE</span>
+            </div>
+            <span class="anomaly-count">{{ formatNumber(stats.anomaliesCritiques) }}</span>
+            <span class="anomaly-desc">MISSING_CORE · REVERSED · CANCELLED</span>
+          </div>
+          <div class="anomaly-item" [class]="getSeverityClass(stats.anomaliesMajeures, 'majeure')">
+            <div class="anomaly-header">
+              <i class="fas fa-exclamation-circle"></i><span>MAJEURE</span>
+            </div>
+            <span class="anomaly-count">{{ formatNumber(stats.anomaliesMajeures) }}</span>
+            <span class="anomaly-desc">REJECTED · FAILED · INSTANCE</span>
+          </div>
+          <div class="anomaly-item" [class]="getSeverityClass(stats.anomaliesMoyennes, 'moyenne')">
+            <div class="anomaly-header">
+              <i class="fas fa-info-circle"></i><span>MOYENNE</span>
+            </div>
+            <span class="anomaly-count">{{ formatNumber(stats.anomaliesMoyennes) }}</span>
+            <span class="anomaly-desc">MISSING_EXCEL · NOT_SETTLED · PENDING</span>
+          </div>
+          <div class="anomaly-item" [class]="getSeverityClass(stats.anomaliesMineurs, 'mineure')">
+            <div class="anomaly-header">
+              <i class="fas fa-minus-circle"></i><span>MINEURE</span>
+            </div>
+            <span class="anomaly-count">{{ formatNumber(stats.anomaliesMineurs) }}</span>
+            <span class="anomaly-desc">AMOUNT · PHONE · TYPE · INST</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DERNIER BATCH -->
+    <div class="section-card" *ngIf="stats.dernierBatchCutOff">
+      <h3><i class="fas fa-history"></i> Dernier import</h3>
       <div class="last-job-grid">
         <div class="job-stat">
           <span class="stat-label">CUT_OFF_ID</span>
-          <span class="stat-value">{{ lastJob.cutOffId }}</span>
+          <span class="stat-value"><code>{{ stats.dernierBatchCutOff }}</code></span>
         </div>
         <div class="job-stat">
-          <span class="stat-label">Statut</span>
-          <span [class]="getStatusBadge(lastJob.jobStatus)">{{ getStatusLabel(lastJob.jobStatus) }}</span>
+          <span class="stat-label">Date d'import</span>
+          <span class="stat-value">{{ formatDate(stats.dernierBatchDate) }}</span>
         </div>
         <div class="job-stat">
-          <span class="stat-label">Conformes</span>
-          <span class="stat-value text-green">{{ lastJob.totalConforme }}</span>
+          <span class="stat-label">Batches importés</span>
+          <span class="stat-value">{{ formatNumber(stats.batchsImportes) }}</span>
         </div>
         <div class="job-stat">
-          <span class="stat-label">Non conformes</span>
-          <span class="stat-value text-red">{{ lastJob.totalNonConforme }}</span>
-        </div>
-        <div class="job-stat">
-          <span class="stat-label">Date</span>
-          <span class="stat-value">{{ formatDate(lastJob.launchedAt) }}</span>
+          <span class="stat-label">Batches rapprochés</span>
+          <span class="stat-value text-green">{{ formatNumber(stats.batchsReconcilies) }}</span>
         </div>
       </div>
     </div>
 
+    <!-- 5 DERNIERS IMPORTS -->
     <div class="section-card">
-      <h3><i class="fas fa-list"></i> Historique des imports</h3>
+      <h3><i class="fas fa-list"></i> 5 derniers imports</h3>
       <div *ngIf="batches.length === 0" class="empty-state">
         <i class="fas fa-inbox"></i>
         <p>Aucun import effectué</p>
@@ -92,7 +202,7 @@
           <tr *ngFor="let b of batches">
             <td><code>{{ b.cutOffId }}</code></td>
             <td>{{ b.fileName }}</td>
-            <td>{{ b.totalRows }}</td>
+            <td>{{ formatNumber(b.totalRows) }}</td>
             <td><span [class]="getStatusBadge(b.status)">{{ getStatusLabel(b.status) }}</span></td>
             <td>{{ b.importedBy }}</td>
             <td>{{ formatDate(b.importedAt) }}</td>
@@ -100,5 +210,6 @@
         </tbody>
       </table>
     </div>
+
   </ng-container>
 </div>

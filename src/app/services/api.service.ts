@@ -6,7 +6,7 @@ import {
   ReconciliationSummary, ReconResult,
   UserResponse, CreateUserRequest,
   Config, UpdateConfigRequest,
-  AuditLog
+  AuditLog, DashboardStats
 } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
@@ -16,7 +16,7 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  // ── Import ────────────────────────────────────────────────
+  // ── Import ──────────────────────────────────────────────
   uploadFile(file: File, cutOffId: string): Observable<ImportResponse> {
     const form = new FormData();
     form.append('file', file);
@@ -32,7 +32,16 @@ export class ApiService {
     return this.http.get<BatchSummary>(`${this.base}/import/batch/${id}`);
   }
 
-  // ── Reconciliation ────────────────────────────────────────
+  // ── Batch Admin ─────────────────────────────────────────
+  annulerBatch(id: number): Observable<any> {
+    return this.http.put(`${this.base}/admin/batch/${id}/annuler`, {});
+  }
+
+  supprimerBatch(id: number): Observable<any> {
+    return this.http.delete(`${this.base}/admin/batch/${id}/supprimer`);
+  }
+
+  // ── Reconciliation ──────────────────────────────────────
   runReconciliation(batchId: number): Observable<ReconciliationSummary> {
     return this.http.post<ReconciliationSummary>(
       `${this.base}/reconciliation/run/${batchId}`, {});
@@ -52,13 +61,13 @@ export class ApiService {
       `${this.base}/reconciliation/result/${jobId}`);
   }
 
-  // ── Report ────────────────────────────────────────────────
+  // ── Report ──────────────────────────────────────────────
   generateReport(jobId: number): Observable<Blob> {
     return this.http.get(`${this.base}/reports/generate/${jobId}`,
       { responseType: 'blob' });
   }
 
-  // ── Users ─────────────────────────────────────────────────
+  // ── Users ───────────────────────────────────────────────
   getUsers(): Observable<UserResponse[]> {
     return this.http.get<UserResponse[]>(`${this.base}/admin/users`);
   }
@@ -77,18 +86,22 @@ export class ApiService {
       { responseType: 'text' });
   }
 
-  // ── Config ────────────────────────────────────────────────
+  // ── Config ──────────────────────────────────────────────
   getConfigs(): Observable<Config[]> {
     return this.http.get<Config[]>(`${this.base}/admin/config`);
   }
 
   updateConfig(key: string, value: string): Observable<Config> {
-  return this.http.put<Config>(`${this.base}/admin/config/${key}`, { configValue: value });
-}
+    return this.http.put<Config>(`${this.base}/admin/config/${key}`, { configValue: value });
+  }
 
-
-  // ── Audit ─────────────────────────────────────────────────
+  // ── Audit ───────────────────────────────────────────────
   getAuditLogs(): Observable<AuditLog[]> {
     return this.http.get<AuditLog[]>(`${this.base}/admin/audit`);
+  }
+
+  // ── Dashboard ───────────────────────────────────────────
+  getDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>(`${this.base}/dashboard/stats`);
   }
 }

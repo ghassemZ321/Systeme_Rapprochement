@@ -19,6 +19,10 @@ export class UsersComponent implements OnInit {
   error = '';
   success = '';
 
+  // -- Recherche --
+  recherche = '';
+  usersFiltres: UserResponse[] = [];
+
   newUser: CreateUserRequest = {
     username: '',
     fullName: '',
@@ -35,9 +39,31 @@ export class UsersComponent implements OnInit {
   loadUsers(): void {
     this.loading = true;
     this.api.getUsers().subscribe({
-      next: (u: UserResponse[]) => { this.users = u; this.loading = false; },
+      next: (u: UserResponse[]) => {
+        this.users = u;
+        this.filtrer();
+        this.loading = false;
+      },
       error: () => { this.loading = false; }
     });
+  }
+
+  // -- Filtrer par identifiant --
+  filtrer(): void {
+    const terme = this.recherche.trim().toLowerCase();
+    if (!terme) {
+      this.usersFiltres = [...this.users];
+    } else {
+      this.usersFiltres = this.users.filter(u =>
+        u.username.toLowerCase().includes(terme) ||
+        u.fullName.toLowerCase().includes(terme)
+      );
+    }
+  }
+
+  reinitialiserRecherche(): void {
+    this.recherche = '';
+    this.filtrer();
   }
 
   createUser(): void {
@@ -49,14 +75,14 @@ export class UsersComponent implements OnInit {
     this.error = '';
     this.api.createUser(this.newUser).subscribe({
       next: () => {
-        this.success = `Utilisateur ${this.newUser.username} créé avec succès.`;
+        this.success = `Utilisateur ${this.newUser.username} cree avec succes.`;
         this.saving = false;
         this.showForm = false;
         this.newUser = { username: '', fullName: '', role: 'AGENT', password: '' };
         this.loadUsers();
       },
       error: (err: any) => {
-        this.error = err.error?.message || 'Erreur lors de la création.';
+        this.error = err.error?.message || 'Erreur lors de la creation.';
         this.saving = false;
       }
     });
@@ -65,7 +91,7 @@ export class UsersComponent implements OnInit {
   toggleUser(userId: number, currentActive: number): void {
     this.api.toggleUser(userId).subscribe({
       next: () => {
-        this.success = `Utilisateur ${currentActive === 1 ? 'désactivé' : 'activé'} avec succès.`;
+        this.success = `Utilisateur ${currentActive === 1 ? 'desactive' : 'active'} avec succes.`;
         this.loadUsers();
       },
       error: () => { this.error = 'Erreur lors de la modification.'; }
@@ -73,19 +99,19 @@ export class UsersComponent implements OnInit {
   }
 
   resetPassword(userId: number, username: string): void {
-    if (!confirm(`Réinitialiser le mot de passe de ${username} ?`)) return;
+    if (!confirm(`Reinitialiser le mot de passe de ${username} ?`)) return;
     this.api.resetPassword(userId).subscribe({
-      next: () => { this.success = `Mot de passe de ${username} réinitialisé.`; },
-      error: () => { this.error = 'Erreur lors de la réinitialisation.'; }
+      next: () => { this.success = `Mot de passe de ${username} reinitialise.`; },
+      error: () => { this.error = 'Erreur lors de la reinitialisation.'; }
     });
   }
 
   getRoleBadge(role: string): string {
     switch (role) {
-      case 'ADMIN': return 'badge badge-admin';
+      case 'ADMIN':       return 'badge badge-admin';
       case 'SUPERVISEUR': return 'badge badge-superviseur';
-      case 'AGENT': return 'badge badge-agent';
-      default: return 'badge';
+      case 'AGENT':       return 'badge badge-agent';
+      default:            return 'badge';
     }
   }
 

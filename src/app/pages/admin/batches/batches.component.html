@@ -1,0 +1,171 @@
+<div class="batches-page">
+
+  <!-- En-tete -->
+  <div class="page-header">
+    <h2><i class="fas fa-layer-group"></i> Gestion des Batches</h2>
+    
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+  </div>
+  <div *ngIf="error" class="alert alert-error">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+
+  <!-- Chargement -->
+  <div *ngIf="loading" class="loading-spinner">
+    <i class="fas fa-spinner fa-spin"></i> Chargement...
+  </div>
+
+  <div class="section-card" *ngIf="!loading">
+
+    <!-- FILTRES DATE -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date debut</label>
+        <input type="date" [(ngModel)]="dateDebut" class="filter-input" />
+      </div>
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date fin</label>
+        <input type="date" [(ngModel)]="dateFin" class="filter-input" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn-filter" (click)="appliquerFiltres()">
+          <i class="fas fa-search"></i> Filtrer
+        </button>
+        <button class="btn-reinit" (click)="reinitialiserFiltres()">
+          <i class="fas fa-times"></i> Reinitialiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Info resultats -->
+    <div class="history-info">
+      <span><strong>{{ batchesFiltres.length }}</strong> batch(es) trouve(s)</span>
+      <span *ngIf="totalPages > 0">Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    </div>
+
+    <!-- Vide -->
+    <div *ngIf="batchesFiltres.length === 0" class="empty-block">
+      <i class="fas fa-inbox"></i>
+      <p>Aucun batch trouve pour cette periode.</p>
+    </div>
+
+    <!-- Tableau -->
+    <table class="data-table" *ngIf="batchesFiltres.length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>CUT_OFF_ID</th>
+          <th>Fichier</th>
+          <th>Lignes</th>
+          <th>Statut</th>
+          <th>Importe par</th>
+          <th>Date</th>
+          <th *ngIf="isAdmin">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let b of batchesPage" [class.row-error]="b.status === 'ERROR'">
+          <td><code>{{ b.id }}</code></td>
+          <td><code>{{ b.cutOffId }}</code></td>
+          <td>{{ b.fileName }}</td>
+          <td>{{ formatNumber(b.totalRows) }}</td>
+          <td><span [class]="getStatusBadge(b.status)">{{ getStatusLabel(b.status) }}</span></td>
+          <td>{{ b.importedBy }}</td>
+          <td>{{ formatDate(b.importedAt) }}</td>
+          <td *ngIf="isAdmin">
+            <div class="action-buttons">
+              <button
+                *ngIf="canAnnuler(b)"
+                class="btn-annuler"
+                [disabled]="actionLoading === b.id"
+                (click)="openModal('annuler', b)">
+                <i class="fas fa-ban"></i>
+                <span *ngIf="actionLoading !== b.id">Annuler</span>
+                <span *ngIf="actionLoading === b.id"><i class="fas fa-spinner fa-spin"></i></span>
+              </button>
+              <button
+                *ngIf="canSupprimer(b)"
+                class="btn-supprimer"
+                [disabled]="actionLoading === b.id"
+                (click)="openModal('supprimer', b)">
+                <i class="fas fa-trash-alt"></i>
+                <span *ngIf="actionLoading !== b.id">Supprimer</span>
+                <span *ngIf="actionLoading === b.id"><i class="fas fa-spinner fa-spin"></i></span>
+              </button>
+              <span *ngIf="!canAnnuler(b) && !canSupprimer(b)" class="badge-protected">
+                <i class="fas fa-lock"></i> Protege
+              </span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">
+        &laquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">
+        &lsaquo;
+      </button>
+      <button
+        *ngFor="let p of getPages()"
+        class="page-btn"
+        [class.active]="p === currentPage"
+        (click)="goToPage(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">
+        &rsaquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">
+        &raquo;
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Modal de confirmation -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header" [class.modal-header-danger]="modalAction === 'supprimer'">
+        <i class="fas"
+           [class.fa-ban]="modalAction === 'annuler'"
+           [class.fa-trash-alt]="modalAction === 'supprimer'"></i>
+        {{ modalAction === 'annuler' ? "Confirmer l'annulation" : 'Confirmer la suppression' }}
+      </div>
+      <div class="modal-body" *ngIf="selectedBatch">
+        <p *ngIf="modalAction === 'annuler'">
+          Voulez-vous annuler le batch <strong>{{ selectedBatch.cutOffId }}</strong> ?<br>
+          <span class="modal-info">Le CUT_OFF_ID sera libere pour un nouvel import.</span>
+        </p>
+        <p *ngIf="modalAction === 'supprimer'">
+          Voulez-vous supprimer <strong>definitivement</strong> le batch <strong>{{ selectedBatch.cutOffId }}</strong> ?<br>
+          <span class="modal-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Toutes les transactions seront supprimees. Action irreversible !
+          </span>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeModal()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button
+          [class]="modalAction === 'supprimer' ? 'btn-confirm-danger' : 'btn-confirm-warning'"
+          (click)="confirmerAction()">
+          <i class="fas"
+             [class.fa-ban]="modalAction === 'annuler'"
+             [class.fa-trash-alt]="modalAction === 'supprimer'"></i>
+          {{ modalAction === 'annuler' ? "Confirmer l'annulation" : 'Supprimer definitivement' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -30,8 +30,8 @@
 }
 
 .sidebar-brand img {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 100px;
   border-radius: 8px;
   object-fit: contain;
   background: rgba(255,255,255,0.15);

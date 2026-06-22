@@ -1,0 +1,163 @@
+<div class="search-page">
+
+  <div class="page-header">
+    <h2><i class="fas fa-search"></i> Recherche de transactions</h2>
+  </div>
+
+  <div class="filters-card">
+    <h3><i class="fas fa-filter"></i> Filtres de recherche</h3>
+    <div class="filters-grid">
+
+      <div class="filter-group">
+        <label>CUT_OFF_ID (Batch) <span class="required">*</span></label>
+        <select [(ngModel)]="selectedBatchId" class="filter-input">
+          <option [ngValue]="null">-- Sélectionner un batch --</option>
+          <option *ngFor="let b of batches" [ngValue]="b.id">
+            {{ b.cutOffId }} — {{ b.totalRows | number }} lignes
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Référence (SWITCH_REF)</label>
+        <input type="text" [(ngModel)]="switchRef"
+               class="filter-input" placeholder="Ex: REF-001..."
+               (keyup.enter)="search(0)">
+      </div>
+
+      <div class="filter-group">
+        <label>Conformité</label>
+        <select [(ngModel)]="conformite" class="filter-input">
+          <option value="">-- Toutes --</option>
+          <option value="CONFORME">✅ Conforme</option>
+          <option value="NON_CONFORME">❌ Non conforme</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Type d'anomalie</label>
+        <select [(ngModel)]="anomalyCode" class="filter-input">
+          <option value="">-- Toutes --</option>
+          <option *ngFor="let code of anomalyCodes" [value]="code">{{ code }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Montant min (MRU)</label>
+        <input type="number" [(ngModel)]="montantMin"
+               class="filter-input" placeholder="Ex: 10000">
+      </div>
+
+      <div class="filter-group">
+        <label>Montant max (MRU)</label>
+        <input type="number" [(ngModel)]="montantMax"
+               class="filter-input" placeholder="Ex: 100000">
+      </div>
+
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn-reset" (click)="reset()">
+        <i class="fas fa-times"></i> Réinitialiser
+      </button>
+      <button class="btn-search" (click)="search(0)" [disabled]="loading">
+        <i class="fas" [class.fa-search]="!loading" [class.fa-spinner]="loading" [class.fa-spin]="loading"></i>
+        {{ loading ? 'Recherche...' : 'Rechercher' }}
+      </button>
+      <button class="btn-export-csv" (click)="exportCsv()" [disabled]="!selectedBatchId || loading">
+        <i class="fas fa-file-csv"></i> Exporter CSV
+      </button>
+      <button class="btn-export-xlsx" (click)="exportXlsx()" [disabled]="!selectedBatchId || loading">
+        <i class="fas fa-file-excel"></i> Exporter Excel
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+
+  <div class="results-card" *ngIf="searched">
+
+    <div class="results-header">
+      <div class="results-count">
+        <i class="fas fa-list"></i>
+        <strong>{{ totalElements | number }}</strong> transaction(s) trouvée(s)
+        <span class="results-page-info">— Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+      </div>
+      <div class="results-size-info">{{ pageSize }} résultats par page</div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table" *ngIf="results.length > 0">
+        <thead>
+          <tr>
+            <th>SWITCH_REF</th>
+            <th>Conformité</th>
+            <th>Anomalie</th>
+            <th>Sévérité</th>
+            <th>Montant Excel</th>
+            <th>Montant Core</th>
+            <th>Statut Core</th>
+            <th>Détails</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of results"
+              [class.row-conforme]="r.conformite === 'CONFORME'"
+              [class.row-non-conforme]="r.conformite === 'NON_CONFORME'">
+            <td><code>{{ r.switchRef }}</code></td>
+            <td>
+              <span [class]="getConformiteBadge(r.conformite)">
+                {{ r.conformite === 'CONFORME' ? '✅ Conforme' : '❌ Non conforme' }}
+              </span>
+            </td>
+            <td>
+              <span class="anomaly-tag" *ngIf="r.anomalyCode">{{ r.anomalyCode }}</span>
+              <span *ngIf="!r.anomalyCode" class="text-muted">—</span>
+            </td>
+            <td>
+              <span [class]="getSeverityBadge(r.anomalySeverity)" *ngIf="r.anomalySeverity">{{ r.anomalySeverity }}</span>
+              <span *ngIf="!r.anomalySeverity" class="text-muted">—</span>
+            </td>
+            <td class="montant">{{ formatMontant(r.montantExcel) }}</td>
+            <td class="montant">{{ formatMontant(r.montantCore) }}</td>
+            <td>
+              <span class="status-tag" *ngIf="r.trxStatus">{{ r.trxStatus }}</span>
+              <span *ngIf="!r.trxStatus" class="text-muted">—</span>
+            </td>
+            <td class="details">{{ r.details || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="results.length === 0" class="empty-state">
+        <i class="fas fa-search"></i>
+        <p>Aucune transaction trouvée avec ces critères.</p>
+      </div>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">
+        <i class="fas fa-angle-left"></i>
+      </button>
+      <button *ngFor="let p of getPages()"
+              class="page-btn"
+              [class.active]="p === currentPage"
+              (click)="goToPage(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">
+        <i class="fas fa-angle-right"></i>
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+
+  </div>
+
+</div>

@@ -1,4 +1,4 @@
-// ── Auth ──────────────────────────────────────────────────────
+// ── Auth ────────────────────────────────────────────────
 export interface LoginRequest {
   username: string;
   password: string;
@@ -17,7 +17,7 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-// ── User ──────────────────────────────────────────────────────
+// ── User ────────────────────────────────────────────────
 export interface UserResponse {
   id: number;
   username: string;
@@ -35,7 +35,7 @@ export interface CreateUserRequest {
   role: string;
 }
 
-// ── Import ────────────────────────────────────────────────────
+// ── Import ──────────────────────────────────────────────
 export interface ImportResponse {
   batchId: number;
   cutOffId: string;
@@ -55,7 +55,7 @@ export interface BatchSummary {
   importedAt: string;
 }
 
-// ── Reconciliation ────────────────────────────────────────────
+// ── Reconciliation ──────────────────────────────────────
 export interface ReconciliationSummary {
   jobId: number;
   batchId: number;
@@ -85,7 +85,7 @@ export interface ReconResult {
   details: string;
 }
 
-// ── Config ────────────────────────────────────────────────────
+// ── Config ──────────────────────────────────────────────
 export interface Config {
   id: number;
   configKey: string;
@@ -97,11 +97,30 @@ export interface UpdateConfigRequest {
   configValue: string;
 }
 
-// ── Audit ─────────────────────────────────────────────────────
+// ── Audit ───────────────────────────────────────────────
 export interface AuditLog {
   id: number;
   username: string;
   action: string;
   details: string;
   createdAt: string;
+}
+
+// ── Dashboard ───────────────────────────────────────────
+export interface DashboardStats {
+  totalBatches: number;
+  totalTransactions: number;
+  totalConformes: number;
+  totalNonConformes: number;
+  totalMissingCore: number;
+  totalMissingExcel: number;
+  tauxConformite: number;
+  batchsReconcilies: number;
+  batchsImportes: number;
+  dernierBatchCutOff: string;
+  dernierBatchDate: string;
+  anomaliesCritiques: number;
+  anomaliesMajeures: number;
+  anomaliesMoyennes: number;
+  anomaliesMineurs: number;
 }

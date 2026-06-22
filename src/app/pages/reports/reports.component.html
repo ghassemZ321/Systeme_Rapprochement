@@ -1,27 +1,55 @@
 <div class="reports">
+
+  <!-- TITRE -->
   <div class="page-header">
     <h2><i class="fas fa-file-excel"></i> Rapports</h2>
-    <button class="btn-refresh" (click)="loadJobs()" [disabled]="loading">
-      <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i> Actualiser
-    </button>
+    
   </div>
 
+  <!-- ALERTES -->
   <div *ngIf="error" class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
   <div *ngIf="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>
 
+  <!-- FILTRES DATE -->
+  <div class="filter-card">
+    <h3><i class="fas fa-calendar-alt"></i> Filtrer par date</h3>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Date debut</label>
+        <input type="date" [(ngModel)]="dateDebut" class="filter-input" />
+      </div>
+      <div class="filter-group">
+        <label>Date fin</label>
+        <input type="date" [(ngModel)]="dateFin" class="filter-input" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn-appliquer" (click)="appliquerFiltres()">
+          <i class="fas fa-search"></i> Appliquer
+        </button>
+        <button class="btn-reinit" (click)="reinitialiserFiltres()">
+          <i class="fas fa-times"></i> Reinitialiser
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLEAU -->
   <div class="section-card">
-    <h3><i class="fas fa-list"></i> Rapprochements disponibles</h3>
+    <div class="section-header">
+      <h3><i class="fas fa-list"></i> Rapprochements disponibles</h3>
+      <span class="total-info">{{ jobsFiltres.length }} resultat(s) - Page {{ currentPage + 1 }} / {{ totalPages }}</span>
+    </div>
 
     <div *ngIf="loading" class="loading-spinner">
       <i class="fas fa-spinner fa-spin"></i> Chargement...
     </div>
 
-    <div *ngIf="!loading && jobs.length === 0" class="empty-state">
-      <i class="fas fa-file-excel"></i>
-      <p>Aucun rapprochement disponible pour générer un rapport.</p>
+    <div *ngIf="!loading && jobsFiltres.length === 0" class="empty-state">
+      <i class="fas fa-inbox"></i>
+      <p>Aucun rapprochement trouve.</p>
     </div>
 
-    <table *ngIf="!loading && jobs.length > 0" class="data-table">
+    <table *ngIf="!loading && jobsFiltres.length > 0" class="data-table">
       <thead>
         <tr>
           <th>CUT_OFF_ID</th>
@@ -33,7 +61,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let j of jobs">
+        <tr *ngFor="let j of jobsPage">
           <td><code>{{ j.cutOffId }}</code></td>
           <td class="text-green">{{ j.totalConforme }}</td>
           <td class="text-red">{{ j.totalNonConforme }}</td>
@@ -47,11 +75,35 @@
                 [class.fa-file-download]="generating !== j.jobId"
                 [class.fa-spinner]="generating === j.jobId"
                 [class.fa-spin]="generating === j.jobId"></i>
-              {{ generating === j.jobId ? 'Génération...' : 'Télécharger' }}
+              {{ generating === j.jobId ? 'Generation...' : 'Telecharger' }}
             </button>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <!-- PAGINATION -->
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">
+        &laquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">
+        &lsaquo;
+      </button>
+      <button
+        *ngFor="let p of getPages()"
+        class="page-btn"
+        [class.active]="p === currentPage"
+        (click)="goToPage(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">
+        &rsaquo;
+      </button>
+      <button class="page-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">
+        &raquo;
+      </button>
+    </div>
+
   </div>
 </div>

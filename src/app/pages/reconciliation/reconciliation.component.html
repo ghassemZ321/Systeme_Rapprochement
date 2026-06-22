@@ -6,24 +6,22 @@
   <div *ngIf="error" class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
   <div *ngIf="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>
 
+  <!-- Lancer un rapprochement -->
   <div class="section-card">
     <h3><i class="fas fa-play-circle"></i> Lancer un rapprochement</h3>
-
     <div *ngIf="loadingBatches" class="loading-inline">
       <i class="fas fa-spinner fa-spin"></i> Chargement des batches...
     </div>
-
     <div *ngIf="!loadingBatches && batches.length === 0" class="empty-state-inline">
       <i class="fas fa-info-circle"></i> Aucun batch disponible. Importez d'abord un fichier.
     </div>
-
     <div *ngIf="!loadingBatches && batches.length > 0" class="run-form">
       <div class="form-group">
-        <label>Sélectionner le batch à rapprocher</label>
-        <select [(ngModel)]="selectedBatchId" class="form-select">
+        <label>Selectionner le batch a rapprocher</label>
+        <select [(ngModel)]="selectedBatchId" class="form-select" [disabled]="running">
           <option [ngValue]="null" disabled>-- Choisir un batch --</option>
           <option *ngFor="let b of batches" [ngValue]="b.id">
-            {{ b.cutOffId }} — {{ b.fileName }} ({{ b.totalRows }} lignes)
+            {{ b.cutOffId }} - {{ b.fileName }} ({{ formatNumber(b.totalRows) }} lignes)
           </option>
         </select>
       </div>
@@ -32,36 +30,111 @@
         {{ running ? 'Rapprochement en cours...' : 'Lancer le rapprochement' }}
       </button>
     </div>
+
+    <!-- Barre de progression -->
+    <div *ngIf="running" class="progress-container">
+      <div class="progress-header">
+        <span class="progress-title">
+          <i class="fas fa-spinner fa-spin"></i> Rapprochement en cours...
+        </span>
+        <span class="progress-numbers">
+          {{ formatNumber(progressDone) }} / {{ formatNumber(progressTotal) }} transactions
+          <strong>({{ progressPct }}%)</strong>
+        </span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill"
+             [style.width.%]="progressPct"
+             [class.fill-early]="progressPct < 30"
+             [class.fill-mid]="progressPct >= 30 && progressPct < 80"
+             [class.fill-late]="progressPct >= 80 && progressPct < 100"
+             [class.fill-done]="progressPct === 100">
+        </div>
+      </div>
+      <div class="progress-steps">
+        <div class="step" [class.step-done]="progressPct > 10">
+          <i class="fas fa-database"></i><span>Chargement</span>
+        </div>
+        <div class="step" [class.step-active]="progressPct >= 10" [class.step-done]="progressPct > 50">
+          <i class="fas fa-exchange-alt"></i><span>Rapprochement</span>
+        </div>
+        <div class="step" [class.step-active]="progressPct >= 50" [class.step-done]="progressPct > 90">
+          <i class="fas fa-save"></i><span>Sauvegarde</span>
+        </div>
+        <div class="step" [class.step-active]="progressPct >= 90" [class.step-done]="progressPct === 100">
+          <i class="fas fa-check-circle"></i><span>Termine</span>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!running && progressPct === 100" class="progress-complete">
+      <i class="fas fa-check-circle"></i> Rapprochement termine avec succes !
+    </div>
   </div>
 
+  <!-- HISTORIQUE avec filtres date + pagination -->
   <div class="section-card">
-    <h3><i class="fas fa-history"></i> Historique des rapprochements</h3>
+    <div class="section-header-bar">
+      <h3><i class="fas fa-history"></i> Historique des rapprochements</h3>
+      <button class="btn-refresh" (click)="loadJobs()">
+        <i class="fas fa-sync-alt"></i> Actualiser
+      </button>
+    </div>
+
+    <!-- FILTRES DATE -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date debut</label>
+        <input type="date" [(ngModel)]="dateDebut" class="filter-input" />
+      </div>
+      <div class="filter-group">
+        <label><i class="fas fa-calendar-alt"></i> Date fin</label>
+        <input type="date" [(ngModel)]="dateFin" class="filter-input" />
+      </div>
+      <div class="filter-actions">
+        <button class="btn-filter" (click)="appliquerFiltres()">
+          <i class="fas fa-search"></i> Filtrer
+        </button>
+        <button class="btn-reinit" (click)="reinitialiserFiltres()">
+          <i class="fas fa-times"></i> Reinitialiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Info resultats -->
+    <div class="history-info">
+      <span><strong>{{ jobsFiltres.length }}</strong> resultat(s) trouve(s)</span>
+      <span *ngIf="jobTotalPages > 0">Page {{ jobCurrentPage + 1 }} / {{ jobTotalPages }}</span>
+    </div>
 
     <div *ngIf="loadingJobs" class="loading-inline">
       <i class="fas fa-spinner fa-spin"></i> Chargement...
     </div>
 
-    <div *ngIf="!loadingJobs && jobs.length === 0" class="empty-state-inline">
-      <i class="fas fa-inbox"></i> Aucun rapprochement effectué.
+    <div *ngIf="!loadingJobs && jobsFiltres.length === 0" class="empty-state-inline">
+      <i class="fas fa-inbox"></i> Aucun rapprochement trouve pour cette periode.
     </div>
 
-    <table *ngIf="!loadingJobs && jobs.length > 0" class="data-table">
+    <table *ngIf="!loadingJobs && jobsFiltres.length > 0" class="data-table">
       <thead>
         <tr>
           <th>CUT_OFF_ID</th>
+          <th>Total Excel</th>
+          <th>Total Core</th>
           <th>Conformes</th>
           <th>Non conformes</th>
-          <th>Statut</th>
+          <th>Lance par</th>
           <th>Date</th>
-          <th>Résultats</th>
+          <th>Resultats</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let j of jobs" [class.selected-row]="selectedJobId === j.jobId">
+        <tr *ngFor="let j of jobsPage" [class.selected-row]="selectedJobId === j.jobId">
           <td><code>{{ j.cutOffId }}</code></td>
-          <td class="text-green">{{ j.totalConforme }}</td>
-          <td class="text-red">{{ j.totalNonConforme }}</td>
-          <td><span [class]="getStatusBadge(j.jobStatus)">{{ getStatusLabel(j.jobStatus) }}</span></td>
+          <td>{{ formatNumber(j.totalExcel) }}</td>
+          <td>{{ formatNumber(j.totalCore) }}</td>
+          <td class="text-green"><strong>{{ formatNumber(j.totalConforme) }}</strong></td>
+          <td class="text-red"><strong>{{ formatNumber(j.totalNonConforme) }}</strong></td>
+          <td>{{ j.launchedBy }}</td>
           <td>{{ formatDate(j.launchedAt) }}</td>
           <td>
             <button class="btn-detail" (click)="loadResults(j.jobId)" [disabled]="loadingResults">
@@ -71,48 +144,100 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- PAGINATION HISTORIQUE -->
+    <div class="pagination" *ngIf="jobTotalPages > 1">
+      <button class="page-btn" (click)="goToJobPage(0)" [disabled]="jobCurrentPage === 0">
+        &laquo;
+      </button>
+      <button class="page-btn" (click)="goToJobPage(jobCurrentPage - 1)" [disabled]="jobCurrentPage === 0">
+        &lsaquo;
+      </button>
+      <button
+        *ngFor="let p of getJobPages()"
+        class="page-btn"
+        [class.active]="p === jobCurrentPage"
+        (click)="goToJobPage(p)">
+        {{ p + 1 }}
+      </button>
+      <button class="page-btn" (click)="goToJobPage(jobCurrentPage + 1)" [disabled]="jobCurrentPage === jobTotalPages - 1">
+        &rsaquo;
+      </button>
+      <button class="page-btn" (click)="goToJobPage(jobTotalPages - 1)" [disabled]="jobCurrentPage === jobTotalPages - 1">
+        &raquo;
+      </button>
+    </div>
+
   </div>
 
-  <div class="section-card" *ngIf="selectedJobId">
-    <h3><i class="fas fa-list-alt"></i> Résultats du rapprochement</h3>
+  <!-- Resultats pagines -->
+  <div class="section-card results-wrapper" *ngIf="selectedJobId">
+    <div class="results-header-bar">
+      <h3><i class="fas fa-list-alt"></i> Resultats - <code>{{ selectedJob?.cutOffId }}</code></h3>
+      <div class="results-meta">
+        <span class="badge badge-conforme">{{ formatNumber(conformeCount) }} conformes</span>
+        <span class="badge badge-non-conforme">{{ formatNumber(nonConformeCount) }} non conformes</span>
+        <span class="total-badge">Total : {{ formatNumber(totalElements) }}</span>
+      </div>
+    </div>
 
     <div *ngIf="loadingResults" class="loading-inline">
-      <i class="fas fa-spinner fa-spin"></i> Chargement des résultats...
+      <i class="fas fa-spinner fa-spin"></i> Chargement des resultats...
     </div>
 
-    <div *ngIf="!loadingResults && results.length === 0" class="empty-state-inline">
-      Aucun résultat disponible.
-    </div>
-
-    <div *ngIf="!loadingResults && results.length > 0" class="results-wrapper">
-      <div class="results-summary">
-        <span class="badge badge-conforme">{{ conformeCount }} conformes</span>
-        <span class="badge badge-non-conforme">{{ nonConformeCount }} non conformes</span>
+    <div *ngIf="!loadingResults">
+      <div class="pagination-info">
+        Page <strong>{{ currentPage + 1 }}</strong> / {{ totalPages }}
+        - lignes <strong>{{ currentPage * pageSize + 1 }}</strong>
+        a <strong>{{ (currentPage + 1) * pageSize > totalElements ? totalElements : (currentPage + 1) * pageSize }}</strong>
+        sur <strong>{{ formatNumber(totalElements) }}</strong>
       </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Référence Switch</th>
-            <th>Montant Excel</th>
-            <th>Montant Core</th>
-            <th>Présence</th>
-            <th>Conformité</th>
-            <th>Code anomalie</th>
-            <th>Détails</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of results">
-            <td><code>{{ r.switchRef }}</code></td>
-            <td>{{ r.montantExcel | number:'1.2-2' }}</td>
-            <td>{{ r.montantCore | number:'1.2-2' }}</td>
-            <td>{{ r.presence }}</td>
-            <td><span [class]="getStatusBadge(r.conformite)">{{ getStatusLabel(r.conformite) }}</span></td>
-            <td>{{ r.anomalyCode || '-' }}</td>
-            <td>{{ r.details || '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
+
+      <div class="table-wrapper">
+        <table class="data-table" *ngIf="results.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Reference Switch</th>
+              <th>Montant Excel</th>
+              <th>Montant Core</th>
+              <th>Presence</th>
+              <th>Conformite</th>
+              <th>Anomalie</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of results; let i = index"
+                [class.row-conforme]="r.conformite === 'CONFORME'"
+                [class.row-ko]="r.conformite === 'NON_CONFORME'">
+              <td class="row-num">{{ currentPage * pageSize + i + 1 }}</td>
+              <td><code>{{ r.switchRef }}</code></td>
+              <td class="montant">{{ r.montantExcel != null ? (r.montantExcel | number:'1.2-2') + ' MRU' : '-' }}</td>
+              <td class="montant">{{ r.montantCore != null ? (r.montantCore | number:'1.2-2') + ' MRU' : '-' }}</td>
+              <td><span class="presence-tag">{{ r.presence }}</span></td>
+              <td><span [class]="getConformiteBadge(r.conformite)">{{ r.conformite === 'CONFORME' ? 'Conforme' : 'Non conforme' }}</span></td>
+              <td><span class="anomaly-tag" *ngIf="r.anomalyCode">{{ r.anomalyCode }}</span><span *ngIf="!r.anomalyCode">-</span></td>
+              <td class="details-cell">{{ r.details || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PAGINATION RESULTATS -->
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button class="page-btn" (click)="goToPage(0)" [disabled]="currentPage === 0">&laquo;</button>
+        <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 0">&lsaquo;</button>
+        <button *ngFor="let p of getPages()"
+                class="page-btn"
+                [class.active]="p === currentPage"
+                (click)="goToPage(p)">
+          {{ p + 1 }}
+        </button>
+        <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages - 1">&rsaquo;</button>
+        <button class="page-btn" (click)="goToPage(totalPages - 1)" [disabled]="currentPage === totalPages - 1">&raquo;</button>
+      </div>
     </div>
   </div>
+
 </div>

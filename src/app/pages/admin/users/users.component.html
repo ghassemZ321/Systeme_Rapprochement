@@ -1,4 +1,6 @@
 <div class="users">
+
+  <!-- HEADER -->
   <div class="page-header">
     <h2><i class="fas fa-users"></i> Gestion des utilisateurs</h2>
     <button class="btn-add" (click)="showForm = !showForm">
@@ -7,22 +9,30 @@
     </button>
   </div>
 
-  <div *ngIf="error" class="alert alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
-  <div *ngIf="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{ success }}</div>
+  <!-- ALERTES -->
+  <div *ngIf="error" class="alert alert-error">
+    <i class="fas fa-exclamation-circle"></i> {{ error }}
+  </div>
+  <div *ngIf="success" class="alert alert-success">
+    <i class="fas fa-check-circle"></i> {{ success }}
+  </div>
 
+  <!-- FORMULAIRE CREATION -->
   <div class="section-card form-card" *ngIf="showForm">
-    <h3><i class="fas fa-user-plus"></i> Créer un utilisateur</h3>
+    <h3><i class="fas fa-user-plus"></i> Creer un utilisateur</h3>
     <div class="form-grid">
       <div class="form-group">
         <label>Identifiant *</label>
-        <input type="text" [(ngModel)]="newUser.username" placeholder="Ex: jdupont" class="form-input" />
+        <input type="text" [(ngModel)]="newUser.username"
+               placeholder="Ex: jdupont" class="form-input" />
       </div>
       <div class="form-group">
         <label>Nom complet *</label>
-        <input type="text" [(ngModel)]="newUser.fullName" placeholder="Ex: Jean Dupont" class="form-input" />
+        <input type="text" [(ngModel)]="newUser.fullName"
+               placeholder="Ex: Jean Dupont" class="form-input" />
       </div>
       <div class="form-group">
-        <label>Rôle *</label>
+        <label>Role *</label>
         <select [(ngModel)]="newUser.role" class="form-select">
           <option value="ADMIN">Administrateur</option>
           <option value="SUPERVISEUR">Superviseur</option>
@@ -31,62 +41,113 @@
       </div>
       <div class="form-group">
         <label>Mot de passe initial *</label>
-        <input type="password" [(ngModel)]="newUser.password" placeholder="Mot de passe temporaire" class="form-input" />
+        <input type="password" [(ngModel)]="newUser.password"
+               placeholder="Mot de passe temporaire" class="form-input" />
       </div>
     </div>
     <div class="form-actions">
       <button class="btn-save" (click)="createUser()" [disabled]="saving">
         <i class="fas fa-save"></i>
-        {{ saving ? 'Création...' : "Créer l'utilisateur" }}
+        {{ saving ? 'Creation...' : "Creer l'utilisateur" }}
       </button>
     </div>
   </div>
 
+  <!-- LISTE UTILISATEURS -->
   <div class="section-card">
-    <h3><i class="fas fa-list"></i> Liste des utilisateurs ({{ users.length }})</h3>
 
+    <!-- Titre + compteur -->
+    <div class="section-header-bar">
+      <h3><i class="fas fa-list"></i> Liste des utilisateurs</h3>
+      <span class="count-badge">{{ usersFiltres.length }} / {{ users.length }}</span>
+    </div>
+
+    <!-- BARRE DE RECHERCHE -->
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="fas fa-search search-icon"></i>
+        <input
+          type="text"
+          [(ngModel)]="recherche"
+          (ngModelChange)="filtrer()"
+          (keyup.enter)="filtrer()"
+          placeholder="Rechercher par identifiant ou nom..."
+          class="search-input" />
+        <button class="search-clear" *ngIf="recherche" (click)="reinitialiserRecherche()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Info resultats -->
+    <div class="search-info" *ngIf="recherche">
+      <i class="fas fa-filter"></i>
+      <strong>{{ usersFiltres.length }}</strong> resultat(s) pour
+      <em>"{{ recherche }}"</em>
+    </div>
+
+    <!-- Chargement -->
     <div *ngIf="loading" class="loading-spinner">
       <i class="fas fa-spinner fa-spin"></i> Chargement...
     </div>
 
-    <table *ngIf="!loading" class="data-table">
+    <!-- Vide -->
+    <div *ngIf="!loading && usersFiltres.length === 0" class="empty-state">
+      <i class="fas fa-user-slash"></i>
+      <p *ngIf="!recherche">Aucun utilisateur trouve.</p>
+      <p *ngIf="recherche">Aucun utilisateur correspond a <strong>"{{ recherche }}"</strong></p>
+    </div>
+
+    <!-- TABLEAU -->
+    <table *ngIf="!loading && usersFiltres.length > 0" class="data-table">
       <thead>
         <tr>
           <th>Identifiant</th>
           <th>Nom complet</th>
-          <th>Rôle</th>
+          <th>Role</th>
           <th>Statut</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let u of users">
-          <td><strong>{{ u.username }}</strong></td>
+        <tr *ngFor="let u of usersFiltres">
+          <td>
+            <div class="user-id">
+              <div class="user-avatar">{{ u.username.charAt(0).toUpperCase() }}</div>
+              <strong>{{ u.username }}</strong>
+            </div>
+          </td>
           <td>{{ u.fullName }}</td>
           <td><span [class]="getRoleBadge(u.role)">{{ u.role }}</span></td>
           <td>
             <span class="badge"
               [class.badge-active]="u.active === 1"
               [class.badge-inactive]="u.active !== 1">
+              <i class="fas"
+                 [class.fa-check-circle]="u.active === 1"
+                 [class.fa-times-circle]="u.active !== 1"></i>
               {{ u.active === 1 ? 'Actif' : 'Inactif' }}
             </span>
           </td>
           <td class="actions-cell">
-            <button class="btn-action btn-toggle"
+            <button class="btn-toggle"
               (click)="toggleUser(u.id, u.active)"
-              [title]="u.active === 1 ? 'Désactiver' : 'Activer'">
+              [title]="u.active === 1 ? 'Desactiver' : 'Activer'">
               <i class="fas"
                 [class.fa-user-slash]="u.active === 1"
                 [class.fa-user-check]="u.active !== 1"></i>
+              {{ u.active === 1 ? 'Desact.' : 'Activer' }}
             </button>
-            <button class="btn-action btn-reset"
+            <button class="btn-reset-pwd"
               (click)="resetPassword(u.id, u.username)"
-              title="Réinitialiser le mot de passe">
+              title="Reset mot de passe">
               <i class="fas fa-key"></i>
+              Reset
             </button>
           </td>
         </tr>
       </tbody>
     </table>
+
   </div>
 </div>
